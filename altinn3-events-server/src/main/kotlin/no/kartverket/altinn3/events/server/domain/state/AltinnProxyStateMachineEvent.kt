@@ -1,0 +1,17 @@
+package no.kartverket.altinn3.events.server.domain.state
+
+enum class AltinnProxyStateMachineEvent {
+    START_RECOVERY,
+    RECOVERY_FAILED,
+    START_SYNC,
+    SYNC_COMPLETE,
+    SYNC_FAILED,
+    POLLING_FAILED,
+    START_WEBHOOKS,
+    WEBHOOK_INITIALIZED,
+    WEBHOOKS_FAILED,
+    WAIT_FOR_VALIDATION_CLOUD_EVENT,
+    WEBHOOK_READY,
+    WEBHOOK_EVENT_REACHED_IN_POLLING,
+    STOP
+}

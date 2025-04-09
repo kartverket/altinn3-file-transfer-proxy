@@ -1,0 +1,10 @@
+spring:
+  flyway:
+    enabled: false
+    locations: classpath:db/migrations
+  datasource:
+    cache:
+      url: jdbc:postgresql://localhost:5432/psdb
+      hikari:
+        username: usr
+        password: passwd

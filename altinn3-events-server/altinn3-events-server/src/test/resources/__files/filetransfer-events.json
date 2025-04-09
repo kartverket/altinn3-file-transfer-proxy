@@ -1,0 +1,20 @@
+[
+  {
+    "specversion": "1.0",
+    "id": "11111111-1111-1111-1111-111111111111",
+    "source": "https://platform.altinn.no/events/api/v1/subscriptions/1234",
+    "type": "no.altinn.broker.filetransferinitialized",
+    "resource": "urn:altinn:resource:kv_devtest",
+    "resourceinstance": "11111111-1111-1111-1111-111111111111",
+    "time": "{{now}}"
+  },
+  {
+    "specversion": "1.0",
+    "id": "11111111-2222-2222-2222-111111111111",
+    "source": "https://platform.altinn.no/events/api/v1/subscriptions/1234",
+    "type": "no.altinn.broker.published",
+    "resource": "urn:altinn:resource:kv_devtest",
+    "resourceinstance": "11111111-1111-1111-1111-111111111111",
+    "time": "{{now}}"
+  }
+]

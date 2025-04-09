@@ -1,0 +1,10 @@
+{
+  "fileTransferId": "{{request.path.fileTransferId}}",
+  "resourceId": "kv_devtest",
+  "fileName": "filename1",
+  "sendersFileTransferReference": "sendersFileTransferReference",
+  "created": "{{now}}",
+  "fileTransferStatus": "Published",
+  "sender": "sender",
+  "propertyList": {}
+}

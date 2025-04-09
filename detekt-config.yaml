@@ -1,0 +1,13 @@
+style:
+  WildcardImport:
+    active: false
+  BracesOnIfStatements:
+    active: false
+  ForbiddenComment:
+    active: false
+
+formatting:
+  NoWildcardImports:
+    active: false
+  MultiLineIfElse:
+    active: false

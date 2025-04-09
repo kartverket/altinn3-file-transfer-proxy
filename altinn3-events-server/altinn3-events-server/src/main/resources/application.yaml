@@ -1,0 +1,58 @@
+server:
+  port: 8231
+
+altinn:
+  # Uncomment and set to bypass the first event to sync from Altinn
+  #start-event: 
+  poll-altinn-interval: 10s
+  poll-transit-enabled: true
+  poll-transit-interval: 10s
+  sender-id: 
+  resource-id: 
+  api:
+    environment: tt02
+    maskinporten:
+      issuer: ae1f0c00-4912-433b-8347-ebe57e74a7c3
+      audience: https://test.maskinporten.no/
+      token-endpoint: https://test.maskinporten.no/token
+      scope-list:
+        - altinn:broker.write
+        - altinn:broker.read
+        - altinn:serviceowner
+        - altinn:events.subscribe
+      client-keystore-alias: 
+      client-keystore-file-path: 
+      client-keystore-password: 
+      client-keystore-type: pkcs12
+
+
+  webhook-external-url: ""
+  webhooks:
+    #    - path: /webhooks/broker/initialized_events
+    #      resource-filter: 
+    #      handler: webhookHandler #bean name
+    #      type-filter: "no.altinn.broker.filetransferinitialized"
+    #    - path: /webhooks/broker/published_events
+    #      resource-filter: 
+    #      handler: webhookHandler #bean name
+    #      type-filter: "no.altinn.broker.published"
+    - path: /webhooks/broker/events
+      resource-filter: 
+      handler: webhookHandler #bean name
+  save-to-db: true
+
+logging:
+  level:
+    no.kartverket: debug
+
+spring:
+  profiles:
+    active: local
+  flyway:
+    enabled: true
+  datasource:
+    transit:
+      url: jdbc:postgresql://localhost:5432/psdb
+      hikari:
+        username: usr
+        password: passwd

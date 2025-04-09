@@ -1,0 +1,18 @@
+/**/settings.gradle
+**/build.gradle
+**/README.md
+**/.openapi-generator*
+
+## Manuelle modell filer:
+**/src/**/models/FileTransferInitalizeExt.kt
+**/src/**/models/FileTransferOverviewExt.kt
+**/src/**/models/FileTransferStatusDetailsExt.kt
+#Enums
+**/src/**/models/JsonPatchOperationType.kt
+**/src/**/models/ResourceType.kt
+
+#oneof string pattern
+**/src/**/models/PartyUrn.kt
+
+#missing properties
+**/src/**/models/ServiceResource.kt

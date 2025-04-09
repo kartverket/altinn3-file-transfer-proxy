@@ -1,0 +1,174 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "GET",
+        "urlPathPattern": ".*/events",
+        "queryParameters": {
+          "after": {
+            "equalTo": "0"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "bodyFileName": "filetransfer-events.json",
+        "headers": {
+          "Content-Type": "application/cloudevents+json"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "urlPathPattern": ".*/events",
+        "queryParameters": {
+          "after": {
+            "doesNotMatch": "0"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": "[]",
+        "headers": {
+          "Content-Type": "application/cloudevents+json"
+        }
+      }
+    },
+    {
+      "request": {
+        "urlPathPattern": "^.*/subscriptions$",
+        "method": "POST"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "endPoint": "{{jsonPath request.body '$.endPoint'}}",
+          "id": 1,
+          "validated": false,
+          "created": "{{now}}"
+        }
+      },
+      "serveEventListeners": [
+        {
+          "name": "webhook",
+          "parameters": {
+            "method": "POST",
+            "url": "{{jsonPath originalRequest.body '$.endPoint'}}",
+            "headers": {
+              "Content-Type": "application/cloudevents+json"
+            },
+            "body": "{ \"id\": \"{{randomValue type='UUID'}}\",\"source\": \"https://platform.altinn.no/events/api/v1/subscriptions/1234\",\"type\": \"platform.events.validatesubscription\",\"specversion\": \"1.0\", \"time\": \"{{now}}\" }"
+          }
+        }
+      ]
+    },
+    {
+      "request": {
+        "method": "DELETE",
+        "urlPathPattern": "^.*/subscriptions/\\d+$"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "urlPathPattern": ".*/filetransfer$"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": "{ \"fileTransferId\": \"{{randomValue type='UUID'}}\" }"
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "urlPathTemplate": "/broker/api/v1/filetransfer/{fileTransferId}/details"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "bodyFileName": "initial-details.json",
+        "transformers": [
+          "response-template"
+        ]
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "urlPathTemplate": "/broker/api/v1/filetransfer/{fileTransferId}"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "bodyFileName": "initial-overview.json"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "urlPathPattern": ".*/upload"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "urlPathPattern": ".*/confirmdownload$"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "urlPathPattern": ".*/download$"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "Body"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "urlPathPattern": ".*/validate"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "fileTransferId": "{{request.path.fileTransferId}}",
+  "fileName": "filename1",
+  "sendersFileTransferReference": "sendersFileTransferReference",
+  "created": "{{now}}",
+  "fileTransferStatus": "Initialized",
+  "sender": "sender",
+  "fileTransferStatusHistory": [
+    {
+      "fileTransferStatus": "Initialized"
+    },
+    {
+      "fileTransferStatus": "Published"
+    }
+  ],
+  "propertyList": {}
+}
