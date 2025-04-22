@@ -19,6 +19,7 @@ Docker-daemon/tjeneste kjørende i bakgrunnen, start applikasjonen fra main-meto
 `/test/.../server/TestApplication.kt`.
 For å bruke webhooks lokalt vil det være enklest å sette opp en tunell med f.eks. [Pinggy](https://pinggy.io/) og sette
 `webhook-external-url` i `application.yaml` til den genererte hosten.
+For å autentisere mot Altinn, må også client-keystore-parameterne konfigureres mot Maskinporten..
 
 Serveren kan startes med profilen `poll` for å kjøre uten webhooks.
 
