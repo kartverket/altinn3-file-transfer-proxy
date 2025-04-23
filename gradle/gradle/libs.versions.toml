@@ -1,11 +1,11 @@
 [versions]
 kotlin = "2.1.20"
-coroutines = "1.10.1"
+coroutines = "1.10.2"
 spring-boot = "3.4.4"
 jackson = "2.18.3"
 testcontainers = "1.20.6"
-flyway = "11.6.0"
-mockk = "1.13.17"
+flyway = "11.7.2"
+mockk = "1.14.0"
 
 [libraries]
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
@@ -18,7 +18,7 @@ spring-boot-webflux = { module = "org.springframework.boot:spring-boot-starter-w
 spring-boot-statemachine = { module = "org.springframework.statemachine:spring-statemachine-autoconfigure", version = "4.0.0" }
 spring-boot-data-jdbc = { module = "org.springframework.boot:spring-boot-starter-data-jdbc", version.ref = "spring-boot" }
 spring-boot-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
-spring-security-oauth2-jose = { module = "org.springframework.security:spring-security-oauth2-jose", version = "6.4.4" }
+spring-security-oauth2-jose = { module = "org.springframework.security:spring-security-oauth2-jose", version = "6.4.5" }
 postgres = { module = "org.postgresql:postgresql", version = "42.7.5" }
 oracle = { module = "com.oracle.database.jdbc:ojdbc11", version = "23.7.0.25.01" }
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
