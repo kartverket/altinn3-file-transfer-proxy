@@ -1,11 +1,11 @@
 [versions]
-kotlin = "2.1.20"
+kotlin = "2.2.0"
 coroutines = "1.10.2"
-spring-boot = "3.4.4"
-jackson = "2.18.3"
-testcontainers = "1.20.6"
-flyway = "11.7.2"
-mockk = "1.14.0"
+spring-boot = "3.5.3"
+jackson = "2.19.1"
+testcontainers = "1.21.2"
+flyway = "11.10.0"
+mockk = "1.14.4"
 
 [libraries]
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
@@ -18,9 +18,9 @@ spring-boot-webflux = { module = "org.springframework.boot:spring-boot-starter-w
 spring-boot-statemachine = { module = "org.springframework.statemachine:spring-statemachine-autoconfigure", version = "4.0.0" }
 spring-boot-data-jdbc = { module = "org.springframework.boot:spring-boot-starter-data-jdbc", version.ref = "spring-boot" }
 spring-boot-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
-spring-security-oauth2-jose = { module = "org.springframework.security:spring-security-oauth2-jose", version = "6.4.5" }
+spring-security-oauth2-jose = { module = "org.springframework.security:spring-security-oauth2-jose", version = "6.5.1" }
 postgres = { module = "org.postgresql:postgresql", version = "42.7.7" }
-oracle = { module = "com.oracle.database.jdbc:ojdbc11", version = "23.7.0.25.01" }
+oracle = { module = "com.oracle.database.jdbc:ojdbc11", version = "23.8.0.25.04" }
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-postgres = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
 logstash = { module = "net.logstash.logback:logstash-logback-encoder", version = "8.1" }
@@ -40,8 +40,8 @@ testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.re
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 mockk-jvm = { module = "io.mockk:mockk-jvm", version.ref = "mockk" }
 spring-mockk = { module = "com.ninja-squad:springmockk", version = "4.0.2" }
-wiremock = { module = "org.wiremock.integrations:wiremock-spring-boot", version = "3.9.0" }
-spring-test-client = { module = "io.rest-assured:spring-web-test-client", version = "5.5.1" }
+wiremock = { module = "org.wiremock.integrations:wiremock-spring-boot", version = "3.10.0" }
+spring-test-client = { module = "io.rest-assured:spring-web-test-client", version = "5.5.5" }
 
 [bundles]
 kotlin-test = ["kotlin-test", "kotlintest-coroutines", "kotlintest-runner-junit"]
@@ -59,4 +59,4 @@ spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 versions = { id = "com.github.ben-manes.versions", version = "0.52.0" }
-openapi-gen = { id = "org.openapi.generator", version = "7.12.0" }
+openapi-gen = { id = "org.openapi.generator", version = "7.14.0" }
