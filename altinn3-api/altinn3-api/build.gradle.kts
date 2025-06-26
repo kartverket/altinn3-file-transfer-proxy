@@ -53,7 +53,7 @@ fun defaultAltinnApiConfig(api: AltinnApi): Action<GenerateTask> = Action {
     generatorName.set("kotlin")
     inputSpec.set("$rootDir/specs/${api.spec}")
     outputDir.set(layout.buildDirectory.dir(api.genClientTaskName()).map { it.toString() })
-
+    templateDir.set("$rootDir/openapi-templates/kotlin") // Custom mustache templates - p.t. brukt for å tweake enums
     packageName.set("no.kartverket.altinn3.$api")
     modelPackage.set("no.kartverket.altinn3.models")
     skipValidateSpec.set(true)

@@ -1,4 +1,3 @@
-
 @file:Suppress(
     "ArrayInDataClass",
     "EnumEntryName",
@@ -8,17 +7,9 @@
 
 package no.kartverket.altinn3.models
 
-import no.kartverket.altinn3.models.AuthorizationReferenceAttribute
-import no.kartverket.altinn3.models.CompetentAuthority
-import no.kartverket.altinn3.models.ContactPoint
-import no.kartverket.altinn3.models.Keyword
-import no.kartverket.altinn3.models.ResourcePartyType
-import no.kartverket.altinn3.models.ResourceReference
-import no.kartverket.altinn3.models.ResourceType
-
 import com.fasterxml.jackson.annotation.JsonProperty
 
-data class ServiceResource (
+data class ServiceResource(
 
     @get:JsonProperty("identifier")
     val identifier: kotlin.String,
