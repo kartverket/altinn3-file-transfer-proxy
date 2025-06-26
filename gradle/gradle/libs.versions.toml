@@ -10,8 +10,8 @@ mockk = "1.14.4"
 [libraries]
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm", version.ref = "coroutines" }
-kotlinx-coroutines-reactor = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactor", version.ref = "coroutines" }
+kotlinx-1.10.2-core = { module = "org.jetbrains.kotlinx:kotlinx-1.10.2-core-jvm", version.ref = "1.10.2" }
+kotlinx-1.10.2-reactor = { module = "org.jetbrains.kotlinx:kotlinx-1.10.2-reactor", version.ref = "1.10.2" }
 jackson-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
 jackson-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
 spring-boot-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux", version.ref = "spring-boot" }
@@ -32,7 +32,7 @@ detekt-klint = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", versi
 spring-boot-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlintest-runner-junit = { module = "io.kotlintest:kotlintest-runner-junit5", version = "3.4.2" }
-kotlintest-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version = "coroutines" }
+kotlintest-1.10.2 = { module = "org.jetbrains.kotlinx:kotlinx-1.10.2-test", version = "1.10.2" }
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers", version.ref = "spring-boot" }
 testcontainers-postgres = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
 testcontainers-oracle = { module = "org.testcontainers:oracle-xe", version.ref = "testcontainers" }
