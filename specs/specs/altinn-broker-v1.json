@@ -29,6 +29,44 @@
             "description": "Ok"
           }
         }
+      },
+      "no.altinn.broker.filepurged": {
+        "post": {
+          "requestBody": {
+            "description": "The file has been purged from Broker",
+            "content": {
+              "application/cloudevents+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudEvent"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Ok"
+            }
+          }
+        }
+      },
+      "no.altinn.broker.fileneverconfirmeddownloaded": {
+        "post": {
+          "requestBody": {
+            "description": "File was never confirmed downloaded by a recipient",
+            "content": {
+              "application/cloudevents+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudEvent"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Ok"
+            }
+          }
+        }
       }
     },
     "no.altinn.broker.filepurged": {
@@ -246,14 +284,14 @@
             "name": "status",
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/FileTransferStatusExt"
+              "$ref": "#/components/schemas/FileTransferStatusExtNullable"
             }
           },
           {
             "name": "recipientStatus",
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/RecipientFileTransferStatusExt"
+              "$ref": "#/components/schemas/RecipientFileTransferStatusExtNullable"
             }
           },
           {
@@ -318,17 +356,6 @@
         ],
         "summary": "Upload to an initialized file using a binary stream.",
         "description": "One of the scopes: \r\n\r\n- altinn:broker.write",
-        "requestBody": {
-          "description": "File to upload",
-          "required": true,
-          "content": {
-            "application/octet-stream": {
-              "schema": {
-                "format": "binary"
-              }
-            }
-          }
-        },
         "parameters": [
           {
             "name": "fileTransferId",
@@ -340,6 +367,17 @@
             }
           }
         ],
+        "requestBody": {
+          "description": "Binary file stream",
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Returns the id of the uploaded File transfer",
@@ -421,9 +459,9 @@
                 "required": [
                   "FileTransfer",
                   "Metadata.FileName",
+                  "Metadata.Recipients",
                   "Metadata.ResourceId",
-                  "Metadata.Sender",
-                  "Metadata.Recipients"
+                  "Metadata.Sender"
                 ],
                 "type": "object",
                 "properties": {
@@ -484,6 +522,35 @@
                     "description": "The file to be uploaded.",
                     "format": "binary"
                   }
+                }
+              },
+              "encoding": {
+                "Metadata.FileName": {
+                  "style": "form"
+                },
+                "Metadata.ResourceId": {
+                  "style": "form"
+                },
+                "Metadata.SendersFileTransferReference": {
+                  "style": "form"
+                },
+                "Metadata.Sender": {
+                  "style": "form"
+                },
+                "Metadata.Recipients": {
+                  "style": "form"
+                },
+                "Metadata.PropertyList": {
+                  "style": "form"
+                },
+                "Metadata.Checksum": {
+                  "style": "form"
+                },
+                "Metadata.DisableVirusScan": {
+                  "style": "form"
+                },
+                "FileTransfer": {
+                  "style": "form"
                 }
               }
             }
@@ -802,13 +869,13 @@
                 "$ref": "#/components/schemas/ResourceExt"
               },
               "example": {
-                "maxFileTransferSize": 2147483648,
-                "fileTransferTimeToLive": "30D",
-                "purgeFileTransferAfterAllRecipientsConfirmed": true,
-                "purgeFileTransferGracePeriod": "48H",
-                "useManifestFileShim": false,
-                "externalServiceCodeLegacy": null,
-                "externalServiceEditionCodeLegacy": null
+                "MaxFileTransferSize": 2147483648,
+                "FileTransferTimeToLive": "30D",
+                "PurgeFileTransferAfterAllRecipientsConfirmed": true,
+                "PurgeFileTransferGracePeriod": "48H",
+                "UseManifestFileShim": false,
+                "ExternalServiceCodeLegacy": null,
+                "ExternalServiceEditionCodeLegacy": null
               }
             }
           }
@@ -1105,6 +1172,8 @@
       },
       "FileTransferOverviewExt": {
         "type": "object",
+        "additionalProperties": false,
+        "description": "Overview of a broker file transfer",
         "properties": {
           "fileTransferId": {
             "type": "string",
@@ -1188,9 +1257,7 @@
             },
             "description": "Up to ten arbitrary key value pairs"
           }
-        },
-        "additionalProperties": false,
-        "description": "Overview of a broker file transfer"
+        }
       },
       "FileTransferStatusDetailsExt": {
         "type": "object",
@@ -1330,6 +1397,21 @@
         ],
         "type": "string"
       },
+      "FileTransferStatusExtNullable": {
+        "enum": [
+          "Initialized",
+          "UploadStarted",
+          "UploadProcessing",
+          "Published",
+          "Cancelled",
+          "AllConfirmedDownloaded",
+          "Purged",
+          "Failed",
+          null
+        ],
+        "type": "string",
+        "nullable": true
+      },
       "FileTransferUploadResponseExt": {
         "type": "object",
         "properties": {
@@ -1426,6 +1508,16 @@
           "DownloadConfirmed"
         ],
         "type": "string"
+      },
+      "RecipientFileTransferStatusExtNullable": {
+        "enum": [
+          "Initialized",
+          "DownloadStarted",
+          "DownloadConfirmed",
+          null
+        ],
+        "type": "string",
+        "nullable": true
       },
       "ResourceExt": {
         "type": "object",
