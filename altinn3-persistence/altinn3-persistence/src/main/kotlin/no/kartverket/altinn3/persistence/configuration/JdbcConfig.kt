@@ -2,11 +2,11 @@ package no.kartverket.altinn3.persistence.configuration
 
 import org.springframework.data.convert.CustomConversions
 import org.springframework.data.jdbc.core.convert.JdbcCustomConversions
+import org.springframework.data.jdbc.core.dialect.DialectResolver
+import org.springframework.data.jdbc.core.dialect.JdbcOracleDialect
 import org.springframework.data.jdbc.core.mapping.JdbcSimpleTypes
 import org.springframework.data.jdbc.repository.config.AbstractJdbcConfiguration
-import org.springframework.data.jdbc.repository.config.DialectResolver
 import org.springframework.data.mapping.model.SimpleTypeHolder
-import org.springframework.data.relational.core.dialect.OracleDialect
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations
 
 abstract class JdbcConfig(private val operations: NamedParameterJdbcOperations) :
@@ -29,7 +29,7 @@ abstract class JdbcConfig(private val operations: NamedParameterJdbcOperations) 
             JdbcSimpleTypes.HOLDER
         )
         val storeConverters = buildList<Any> {
-            addAll(OracleDialect.INSTANCE.converters)
+            addAll(JdbcOracleDialect.INSTANCE.converters)
             addAll(JdbcCustomConversions.storeConverters())
         }
         return JdbcCustomConversions(
