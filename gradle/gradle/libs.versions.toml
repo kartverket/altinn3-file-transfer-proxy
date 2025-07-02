@@ -3,7 +3,7 @@ kotlin = "2.2.0"
 coroutines = "1.10.2"
 spring-boot = "3.5.3"
 jackson = "2.19.1"
-testcontainers = "1.21.2"
+testcontainers = "1.21.3"
 flyway = "11.10.0"
 mockk = "1.14.4"
 
@@ -15,7 +15,7 @@ kotlinx-coroutines-reactor = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 jackson-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
 jackson-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
 spring-boot-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux", version.ref = "spring-boot" }
-spring-boot-statemachine = { module = "org.springframework.statemachine:spring-statemachine-autoconfigure", version = "4.0.0" }
+spring-boot-statemachine = { module = "org.springframework.statemachine:spring-statemachine-autoconfigure", version = "4.0.1" }
 spring-boot-data-jdbc = { module = "org.springframework.boot:spring-boot-starter-data-jdbc", version.ref = "spring-boot" }
 spring-boot-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
 spring-security-oauth2-jose = { module = "org.springframework.security:spring-security-oauth2-jose", version = "6.5.1" }
