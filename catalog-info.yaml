@@ -6,5 +6,5 @@ metadata:
   tags: []
 spec:
   type: "experiment"
-  lifecycle: "experiment"
+  lifecycle: "experimental"
   owner: "digibok"
