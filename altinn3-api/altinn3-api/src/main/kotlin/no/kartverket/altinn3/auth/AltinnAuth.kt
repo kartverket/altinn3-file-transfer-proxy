@@ -7,10 +7,9 @@ import org.springframework.web.client.RestClient
 
 class AltinnAuth(
     val altinnConfig: AltinnConfig,
-    maksinportenProvider:()->MaskinportenTokenUtil = { MaskinportenTokenUtil(altinnConfig.maskinporten!!) }
+    private val maskinporten: MaskinportenTokenUtil
 ) {
 
-    private val maskinporten = maksinportenProvider()
     private val api = AuthenticationApi(
         RestClient.builder()
             .baseUrl(altinnConfig.baseUrl("authentication"))
@@ -24,7 +23,8 @@ class AltinnAuth(
         @Synchronized
         get() {
             if (field?.isExpired != false) {
-                field = AltinnToken(api.exchangeTokenProviderGetAsStringResponse(altinnConfig.environment!!.test).trim('"'))
+                field =
+                    AltinnToken(api.exchangeTokenProviderGetAsStringResponse(altinnConfig.environment!!.test).trim('"'))
             }
             return field
         }

@@ -7,3 +7,4 @@ typealias FileStatusEvent = FileTransferStatusEventExt
 typealias FileStatusDetails = FileTransferStatusDetailsExt
 typealias FileTransferStatusDetails = FileTransferStatusDetailsExt
 typealias FileTransferInitialize = FileTransferInitalizeExt
+typealias FileTransferStatus = FileTransferStatusExt
