@@ -19,6 +19,7 @@ spring-boot-statemachine = { module = "org.springframework.statemachine:spring-s
 spring-boot-data-jdbc = { module = "org.springframework.boot:spring-boot-starter-data-jdbc", version.ref = "spring-boot" }
 spring-boot-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
 spring-security-oauth2-jose = { module = "org.springframework.security:spring-security-oauth2-jose", version = "6.5.1" }
+spring-retry = { module = "org.springframework.retry:spring-retry", version = "2.0.12" }
 postgres = { module = "org.postgresql:postgresql", version = "42.7.7" }
 oracle = { module = "com.oracle.database.jdbc:ojdbc11", version = "23.8.0.25.04" }
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
@@ -27,6 +28,7 @@ logstash = { module = "net.logstash.logback:logstash-logback-encoder", version =
 slf4j = { module = "org.slf4j:slf4j-api", version = "2.0.17" }
 logback = { module = "ch.qos.logback:logback-classic", version = "1.5.18" }
 detekt-klint = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version = "1.23.8" }
+micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version = "1.15.1" }
 
 # Test libs
 spring-boot-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
