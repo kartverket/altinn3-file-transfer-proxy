@@ -14,6 +14,7 @@ Api kan extendes dersom man behov for det. Eks. generator lager feil retur verdi
 
 ## altinn3-server
 
+Kopier og tilpass `resources/application.template.yaml` til `resources/application.yaml`
 Den enkleste måten å kjøre serveren lokalt er å benytte testcontainers for å spinne opp databasen. Med en
 Docker-daemon/tjeneste kjørende i bakgrunnen, start applikasjonen fra main-metoden i
 `/test/.../server/TestApplication.kt`.
