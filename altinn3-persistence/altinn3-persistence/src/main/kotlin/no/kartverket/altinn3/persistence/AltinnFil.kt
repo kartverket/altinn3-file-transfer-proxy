@@ -22,8 +22,16 @@ data class AltinnFil(
         return id == other.id
     }
 
+
+    override fun toString(): String {
+        return "AltinnFil(id=$id, created=$created, fileOverviewId=$fileOverviewId)"
+    }
+
     override fun hashCode(): Int {
-        return javaClass.hashCode()
+        var result = id?.hashCode() ?: 0
+        result = 31 * result + created.hashCode()
+        result = 31 * result + fileOverviewId.hashCode()
+        return result
     }
 }
 
