@@ -3,12 +3,9 @@
   "fileName": "filename1",
   "sendersFileTransferReference": "sendersFileTransferReference",
   "created": "{{now}}",
-  "fileTransferStatus": "Initialized",
+  "fileTransferStatus": "Published",
   "sender": "sender",
   "fileTransferStatusHistory": [
-    {
-      "fileTransferStatus": "Initialized"
-    },
     {
       "fileTransferStatus": "Published"
     }

@@ -5,8 +5,6 @@ import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.handler.AltinnWarningException
 import no.kartverket.altinn3.models.CloudEvent
 import no.kartverket.altinn3.models.FileOverview
-import no.kartverket.altinn3.models.FileTransferStatusDetails
-import no.kartverket.altinn3.models.FileTransferStatusDetailsExt
 import no.kartverket.altinn3.persistence.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -26,7 +24,7 @@ private fun CloudEvent.toAltinnEventEntity() = AltinnEvent(
     source = source.toString()
 )
 
-private fun FileTransferStatusDetails.toAltinnFilOverview() = AltinnFilOverview(
+private fun FileOverview.toAltinnFilOverview() = AltinnFilOverview(
     fileName = this.fileName,
     checksum = this.checksum,
     sendersReference = this.sendersFileTransferReference,
@@ -69,7 +67,7 @@ open class AltinnTransitService(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(javaClass)
 
-    fun prepareForFileTransfer(cloudEvent: CloudEvent, fileDetails: FileTransferStatusDetailsExt) {
+    fun prepareForFileTransfer(cloudEvent: CloudEvent, fileDetails: FileOverview) {
         transactionTemplate.execute {
             val altinnEvent = cloudEvent.toAltinnEventEntity()
             val overview = fileDetails.toAltinnFilOverview()
@@ -107,27 +105,36 @@ open class AltinnTransitService(
     }
 
     private fun saveAltinnFil(fileOverview: FileOverview, fileBytes: ByteArray) {
-        if (!altinnServerConfig.saveToDb)
+        if (!altinnServerConfig.persistAltinnFile) {
+            logger.info(
+                """
+                |Persisting files disabled. 
+                |Won't save file with fileTransferId: {}
+                """.trimMargin(),
+                fileOverview.fileTransferId
+            )
             return
-
+        }
         val fileTransferId =
             requireNotNull(fileOverview.fileTransferId) { "fileTransferId is required in the file overview" }
 
-        val altinnFilOverview = altinnFilOverviewRepository.findByFileTransferId(fileTransferId)
-
-        requireNotNull(altinnFilOverview) { "Altinn fil hasn't been initialized" }
+        val altinnFilOverviewId = altinnFilOverviewRepository
+            .findByFileTransferId(fileTransferId).run {
+                requireNotNull(this?.id) { "Altinn fil hasn't been initialized" }
+            }
 
         val incomingFile = AltinnFil(
             payload = fileBytes,
-            fileOverviewId = altinnFilOverview.id!!
+            fileOverviewId = altinnFilOverviewId
         )
 
+        logger.debug("Trying to save file with fileTransferId: {}", fileTransferId)
         altinnFilRepository.save(incomingFile)
         logger.info("Saved altinn fil with file reference: {} ", fileTransferId)
     }
 
     private fun saveAltinnEvent(altinnEvent: AltinnEvent) {
-        if (!altinnServerConfig.saveToDb)
+        if (!altinnServerConfig.persistCloudEvent)
             return
 
         if (!altinnEventRepository.existsByAltinnId(altinnEvent.altinnId)) {

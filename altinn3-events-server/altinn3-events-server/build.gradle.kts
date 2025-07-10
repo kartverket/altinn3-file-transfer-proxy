@@ -12,6 +12,8 @@ plugins {
 dependencies {
     implementation(project(":altinn3-persistence"))
     implementation(project(":altinn3-api"))
+    implementation(libs.micrometer.prometheus)
+    implementation(libs.spring.retry)
     implementation(libs.spring.boot.statemachine)
     implementation(libs.bundles.kotlin)
     implementation(libs.bundles.jackson)

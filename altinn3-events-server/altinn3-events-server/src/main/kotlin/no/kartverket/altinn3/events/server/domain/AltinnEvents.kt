@@ -1,6 +1,7 @@
 package no.kartverket.altinn3.events.server.domain
 
 import no.kartverket.altinn3.persistence.AltinnFailedEvent
+import java.time.OffsetDateTime
 
 enum class AltinnEventType(val type: String) {
 
@@ -27,11 +28,12 @@ interface AltinnProxyApplicationEvent
 class RecoveryFailedEvent : AltinnProxyApplicationEvent
 class SyncFailedEvent : AltinnProxyApplicationEvent
 class PollingFailedEvent(val altinnFailedEvent: AltinnFailedEvent) : AltinnProxyApplicationEvent
+class FatalErrorEvent : AltinnProxyApplicationEvent
 class SetupWebhooksFailedEvent : AltinnProxyApplicationEvent
 class PollingStartedEvent : AltinnProxyApplicationEvent
 class PollingReachedEndEvent : AltinnProxyApplicationEvent
 class SubscriptionValidatedEvent : AltinnProxyApplicationEvent
 class AltinnSyncFinishedEvent(val latestEventId: String) : AltinnProxyApplicationEvent
-class WebhookHandlerReadyEvent(val webhookEventId: String) : AltinnProxyApplicationEvent
+class WebhookHandlerReadyEvent(val cloudEventTime: OffsetDateTime) : AltinnProxyApplicationEvent
 class SetupSubscriptionsDoneEvent : AltinnProxyApplicationEvent
 class RecoveryDoneEvent : AltinnProxyApplicationEvent

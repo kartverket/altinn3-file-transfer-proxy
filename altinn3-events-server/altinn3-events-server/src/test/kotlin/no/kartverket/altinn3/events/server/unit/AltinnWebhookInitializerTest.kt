@@ -10,16 +10,18 @@ import no.kartverket.altinn3.events.server.service.AltinnWebhookInitializer
 import no.kartverket.altinn3.models.Subscription
 import org.junit.jupiter.api.Test
 import org.springframework.context.ApplicationEventPublisher
+import org.springframework.retry.support.RetryTemplate
 import java.net.URI
 
 class AltinnWebhookInitializerTest {
     private val eventsClient = mockk<EventsClient>()
     private val applicationEventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
     private val altinnWebhooks = mockk<AltinnWebhooks>(relaxed = true)
+    private val retryTemplate = RetryTemplate.builder().maxAttempts(1).build()
     private val subscriptionApi = mockk<SubscriptionApi>()
 
     private val initializer = spyk(
-        AltinnWebhookInitializer(eventsClient, altinnWebhooks, applicationEventPublisher),
+        AltinnWebhookInitializer(eventsClient, altinnWebhooks, applicationEventPublisher, retryTemplate),
         recordPrivateCalls = true
     )
 

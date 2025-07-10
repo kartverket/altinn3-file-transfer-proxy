@@ -20,8 +20,8 @@ class TransitPollerTest {
         pollTransitEnabled = true,
         pollTransitInterval = "PT0.5S",
         startEvent = null,
-        senderId = "test",
         resourceId = "test",
+        recipientId = "1234542"
     )
 
     @AfterEach

@@ -13,5 +13,6 @@ enum class AltinnProxyStateMachineEvent {
     WAIT_FOR_VALIDATION_CLOUD_EVENT,
     WEBHOOK_READY,
     WEBHOOK_EVENT_REACHED_IN_POLLING,
+    FATAL_ERROR,
     STOP
 }

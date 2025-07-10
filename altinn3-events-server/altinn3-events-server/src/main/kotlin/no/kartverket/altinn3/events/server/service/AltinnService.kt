@@ -11,13 +11,18 @@ import org.slf4j.LoggerFactory
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import java.util.*
 
+private const val ALTINN_ORG_NUMBER_PREFIX = "0192:"
+
 @EnableConfigurationProperties(AltinnServerConfig::class)
 class AltinnService(
     private val altinnBrokerClient: BrokerClient,
     private val config: AltinnServerConfig,
 ) {
     val logger = LoggerFactory.getLogger(javaClass)
-    fun sendResponseTilInnsender(fileOverview: AltinnFilOverview, altinnFil: AltinnFil): UUID {
+    fun sendResponseTilInnsender(fileOverview: AltinnFilOverview, altinnFil: AltinnFil): UUID? {
+        if (!config.sendResponse)
+            return null.also { logger.debug("Send response to innsender disabled. Skipping...") }
+
         val innsender = requireNotNull(fileOverview.sender) { "Could not find innsender" }
         val propertyList = fileOverview.jsonPropertyList
             ?.let { jacksonObjectMapper().readValue<Map<Any, Any>>(it) }
@@ -25,21 +30,21 @@ class AltinnService(
 
         val fileInfo = FileTransferInitialize(
             resourceId = config.resourceId,
-            sender = config.senderId,
+            sender = "$ALTINN_ORG_NUMBER_PREFIX${config.recipientId}",
             recipients = listOf(innsender),
             fileName = requireNotNull(fileOverview.fileName) { "File name must be specified" },
             sendersFileTransferReference = fileOverview.fileTransferId.toString(),
             propertyList = propertyList
         )
 
-        val initializedFile = altinnBrokerClient.file
-            .brokerApiV1FiletransferPost(
+        val initializedFile = altinnBrokerClient
+            .initializeFileTransfer(
                 fileInfo
             ).fileTransferId ?: error("Could not initialize file transfer ID")
 
-        altinnBrokerClient.file.brokerApiV1FiletransferFileTransferIdUploadPost(
+        altinnBrokerClient.uploadFileToAltinn(
             fileTransferId = initializedFile,
-            body = altinnFil.payload
+            payload = altinnFil.payload
         )
         logger.info("Successfully uploaded file with transfer ID: {}", initializedFile)
         logger.debug("Initialized file: {}", initializedFile)

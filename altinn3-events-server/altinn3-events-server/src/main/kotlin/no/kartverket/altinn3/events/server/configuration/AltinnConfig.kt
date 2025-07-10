@@ -24,9 +24,15 @@ import org.springframework.core.env.Environment
 import org.springframework.http.client.ClientHttpRequestInterceptor
 import org.springframework.http.converter.FormHttpMessageConverter
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
+import org.springframework.retry.RetryCallback
+import org.springframework.retry.RetryContext
+import org.springframework.retry.RetryListener
+import org.springframework.retry.support.RetryTemplate
 import org.springframework.web.client.RestClient
 import java.net.URI
 import java.util.function.Consumer
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 
 val altinnConfig = beans {
     profile("altinn") {
@@ -52,6 +58,44 @@ val altinnConfig = beans {
         bean<FileTransferApi> {
             AltinnAPIConfig.createFileTransferApi(ref(), ref())
         }
+        bean<RetryTemplate> {
+            RetryConfig.createRetryTemplate(ref())
+        }
+    }
+}
+
+object RetryConfig {
+    private val logger = LoggerFactory.getLogger(RetryConfig::class.java)
+
+    fun createRetryTemplate(altinnRetryConfig: AltinnRetryConfig): RetryTemplate {
+        val initialInterval = altinnRetryConfig.initialInterval.milliseconds
+        val maxInterval = altinnRetryConfig.maxInterval.minutes
+        val multiplier = altinnRetryConfig.multiplier
+        val maxAttempts = altinnRetryConfig.maxAttempts
+
+
+        return RetryTemplate
+            .builder()
+            .maxAttempts(maxAttempts)
+            .withListener(
+                object : RetryListener {
+                    override fun <T : Any?, E : Throwable?> onError(
+                        context: RetryContext?,
+                        callback: RetryCallback<T?, E?>?,
+                        throwable: Throwable?
+                    ) {
+                        logger.warn("Got error, retrying for the ${context?.retryCount ?: 0} time")
+                        logger.warn(throwable?.message ?: "")
+                        super.onError(context, callback, throwable)
+                    }
+                }
+            )
+            .exponentialBackoff(
+                initialInterval.inWholeMilliseconds,
+                multiplier,
+                maxInterval.inWholeMilliseconds
+            )
+            .build()
     }
 }
 
@@ -140,6 +184,12 @@ class AltinnPropertiesConfiguration {
         return MaskinportenConfig()
     }
 
+    @ConfigurationProperties("altinn.retry")
+    @Bean
+    fun altinnRetryConfig(): AltinnRetryConfig {
+        return AltinnRetryConfig()
+    }
+
     @Bean
     fun altinnWebhooks(altinnServerConfig: AltinnServerConfig): AltinnWebhooks {
         return AltinnWebhooks(altinnServerConfig)
@@ -150,14 +200,24 @@ class AltinnPropertiesConfiguration {
 data class AltinnServerConfig(
     val pollTransitInterval: String = "15s",
     var pollTransitEnabled: Boolean = true,
-    val senderId: String,
+    val recipientId: String,
     val resourceId: String,
-    val saveToDb: Boolean = false,
+    val persistCloudEvent: Boolean = true,
+    val persistAltinnFile: Boolean = true,
+    val sendResponse: Boolean = true,
     var pollAltinnInterval: String = "15s",
     var api: AltinnConfig? = null,
     var webhookExternalUrl: String? = null,
     var webhooks: List<AltinnWebhook> = emptyList(),
-    var startEvent: String?
+    var startEvent: String?,
+    var serviceownerOrgnumber: String? = null
+)
+
+data class AltinnRetryConfig(
+    var initialInterval: Int = 500,
+    var maxInterval: Int = 10,
+    var multiplier: Double = 2.0,
+    var maxAttempts: Int = 10
 )
 
 class AltinnWebhooks(altinnServerConfig: AltinnServerConfig) : List<AltinnWebhook> by altinnServerConfig.webhooks {
@@ -176,6 +236,7 @@ class AltinnWebhooks(altinnServerConfig: AltinnServerConfig) : List<AltinnWebhoo
 data class AltinnWebhook(
     var path: String? = null,
     var resourceFilter: String? = null,
+    var subjectFilter: String? = null,
     var typeFilter: String? = null,
     var handler: String = "webhookHandler",
 )

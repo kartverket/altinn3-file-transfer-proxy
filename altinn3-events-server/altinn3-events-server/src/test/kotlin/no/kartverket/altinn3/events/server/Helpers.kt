@@ -9,7 +9,9 @@ import com.fasterxml.jackson.databind.SerializerProvider
 import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
-import no.kartverket.altinn3.models.*
+import no.kartverket.altinn3.models.CloudEvent
+import no.kartverket.altinn3.models.FileOverview
+import no.kartverket.altinn3.models.FileStatus
 import org.junit.jupiter.params.provider.Arguments
 import java.net.URI
 import java.time.OffsetDateTime
@@ -65,23 +67,6 @@ object Helpers {
             propertyList = mapOf(),
             sendersFileTransferReference = "sendersFileTransferReference-${event.resourceinstance}",
         )
-
-    fun createFileStatusDetailsFromEvent(
-        event: CloudEvent,
-        status: FileStatus = FileStatus.Published,
-        fileTransferStatusHistory: List<FileStatusEvent> = emptyList(),
-        fileName: String = "test.xml",
-    ) = FileStatusDetails(
-        fileTransferId = UUID.fromString(event.resourceinstance),
-        resourceId = "kv_devtest",
-        fileTransferStatus = status,
-        propertyList = mapOf(),
-        created = event.time,
-        sender = "innsendtFraTest",
-        sendersFileTransferReference = UUID.randomUUID().toString(),
-        fileName = fileName,
-        fileTransferStatusHistory = fileTransferStatusHistory
-    )
 
     val configuredObjectMapper = jacksonObjectMapper()
         .findAndRegisterModules()

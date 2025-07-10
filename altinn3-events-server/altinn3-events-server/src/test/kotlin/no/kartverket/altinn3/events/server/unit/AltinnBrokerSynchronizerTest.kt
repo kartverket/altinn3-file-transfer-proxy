@@ -5,12 +5,12 @@ import kotlinx.coroutines.test.runTest
 import no.kartverket.altinn3.events.server.Helpers.createCloudEvent
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.domain.*
+import no.kartverket.altinn3.events.server.domain.state.AltinnProxyState
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
 import no.kartverket.altinn3.events.server.service.AltinnBrokerSynchronizer
 import no.kartverket.altinn3.events.server.service.EventLoader
 import no.kartverket.altinn3.events.server.service.HandlePollEventFailedException
 import no.kartverket.altinn3.events.server.service.HandleSyncEventFailedException
-import no.kartverket.altinn3.events.server.domain.state.AltinnProxyState
 import no.kartverket.altinn3.models.CloudEvent
 import no.kartverket.altinn3.persistence.AltinnFailedEvent
 import no.kartverket.altinn3.persistence.AltinnFailedEventRepository
@@ -61,14 +61,14 @@ class AltinnBrokerSynchronizerTest {
             AltinnProxyState.POLL_AND_WEBHOOKS.name
         )
         every { failedEventRepository.findAll() } returns listOf(failedEvent1, failedEvent2)
-        every { eventLoader.fetchAndMapEventsByResource(any()) } returns listOf(setOf(event1, event2))
+        every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(setOf(event1, event2))
         coEvery { cloudEventHandler.handle(any()) } just Runs
         synchronizer.recoverFailedEvents()
         val eventSlot = slot<AltinnProxyApplicationEvent>()
         verify(exactly = 1) { publisher.publishEvent(capture(eventSlot)) }
         verify { failedEventRepository.deleteById(any()) }
         verify(exactly = 1) { failedEventRepository.findAll() }
-        coVerify(exactly = 1) { eventLoader.fetchAndMapEventsByResource(any()) }
+        coVerify(exactly = 1) { eventLoader.fetchAndMapEventsByResource(any(), any()) }
     }
 
     @Test
@@ -76,7 +76,7 @@ class AltinnBrokerSynchronizerTest {
         val event1 = createCloudEvent(AltinnEventType.PUBLISHED)
         val event2 = createCloudEvent(AltinnEventType.PUBLISHED)
 
-        every { eventLoader.fetchAndMapEventsByResource(any()) } returns listOf(setOf(event1, event2))
+        every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(setOf(event1, event2))
 
         coEvery { cloudEventHandler.handle(any()) } just runs
         synchronizer.sync()
@@ -95,14 +95,19 @@ class AltinnBrokerSynchronizerTest {
             val cloudEvent1 = createCloudEvent(AltinnEventType.PUBLISHED)
             val cloudEvent2 = createCloudEvent(AltinnEventType.PUBLISHED)
 
-            every { eventLoader.fetchAndMapEventsByResource(any()) } returns listOf(setOf(cloudEvent1, cloudEvent2))
+            every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(
+                setOf(
+                    cloudEvent1,
+                    cloudEvent2
+                )
+            )
             every { altinnConfig.pollAltinnInterval } returns "1s"
 
             coEvery {
                 cloudEventHandler.handle(any())
             } returns Unit
 
-            synchronizer.endEventId = cloudEvent2.id
+            synchronizer.eventRecievedInWebhooksCreatedAt = cloudEvent2.time
             synchronizer.poll()
 
             coVerify(exactly = 1) { cloudEventHandler.tryHandle<Unit>(cloudEvent1, any(), any()) }
@@ -121,7 +126,7 @@ class AltinnBrokerSynchronizerTest {
     fun `sync() - onError triggers HandleSyncEventFailedException with correct eventId`() = runTest {
         val event = createCloudEvent(AltinnEventType.PUBLISHED).copy(id = "someEventId")
 
-        every { eventLoader.fetchAndMapEventsByResource(any()) } returns listOf(setOf(event))
+        every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(setOf(event))
 
         coEvery {
             cloudEventHandler.tryHandle(
@@ -130,8 +135,8 @@ class AltinnBrokerSynchronizerTest {
                 any<suspend (Throwable) -> Unit>()
             )
         } coAnswers {
-            val onErrorLambda = thirdArg<suspend (Exception) -> Unit>()
-            onErrorLambda(RuntimeException("Simulated sync failure"))
+            val onErrorLambda = thirdArg<suspend (Throwable) -> Unit>()
+            onErrorLambda.invoke(RuntimeException("Simulated sync failure"))
         }
 
         assertThrows<HandleSyncEventFailedException> {
@@ -145,7 +150,7 @@ class AltinnBrokerSynchronizerTest {
     fun `poll() - onError triggers HandlePollEventFailedException with correct eventId`() = runTest {
         val event = createCloudEvent(AltinnEventType.PUBLISHED).copy(id = "pollEventId")
 
-        every { eventLoader.fetchAndMapEventsByResource(any()) } returns listOf(setOf(event))
+        every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(setOf(event))
         every { altinnConfig.pollAltinnInterval } returns "1s"
 
         coEvery {

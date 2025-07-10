@@ -18,10 +18,10 @@ import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.configuration.CLOUDEVENTS_JSON
 import no.kartverket.altinn3.events.server.configuration.WebhookAvailabilityStatus
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
+import no.kartverket.altinn3.events.server.domain.state.AltinnProxyState
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
 import no.kartverket.altinn3.events.server.service.AltinnBrokerSynchronizer
 import no.kartverket.altinn3.events.server.service.EventLoader
-import no.kartverket.altinn3.events.server.domain.state.AltinnProxyState
 import no.kartverket.altinn3.models.CloudEvent
 import no.kartverket.altinn3.persistence.AltinnFailedEvent
 import no.kartverket.altinn3.persistence.AltinnFailedEventRepository
@@ -86,7 +86,10 @@ class WireMockInitializer : ApplicationContextInitializer<ConfigurableApplicatio
     properties = [
         "logging.level.com.github.tomakehurst.wiremock=DEBUG",
         "logging.level.no.kartverket=debug",
-        "altinn.save-to-db=true",
+        "altinn.persist-altinn-file=true",
+        "altinn.retry.max-attempts=1",
+        "altinn.persist-cloud-event=true",
+        "altinn.send-response=true",
         "server.port=8181",
         "altinn.webhook-external-url=http://127.0.0.1:8181",
         "altinn.api.url=http://localhost:9292",
@@ -102,12 +105,18 @@ class WireMockInitializer : ApplicationContextInitializer<ConfigurableApplicatio
         "altinn.webhooks[2].resource-filter=urn:altinn:resource:kv_devtest",
     ]
 )
-class CloudEventIntegrationTest(
-    @Autowired private val altinnFilOverviewRepository: AltinnFilOverviewRepository,
-    @Autowired private val altinnFilRepository: AltinnFilRepository,
-    @Autowired private val status: WebhookAvailabilityStatus,
-    @Autowired private val webTestClient: WebTestClient
-) {
+class CloudEventIntegrationTest {
+    @Autowired
+    private lateinit var status: WebhookAvailabilityStatus
+
+    @Autowired
+    private lateinit var altinnFilOverviewRepository: AltinnFilOverviewRepository
+
+    @Autowired
+    private lateinit var altinnFilRepository: AltinnFilRepository
+
+    @Autowired
+    private lateinit var webTestClient: WebTestClient
     private val logger = LoggerFactory.getLogger(javaClass)
     private fun CloudEvent.toJson() =
         configuredObjectMapper.writeValueAsString(this)
@@ -126,19 +135,10 @@ class CloudEventIntegrationTest(
     @Test
     fun `Should save files when recieving cloud events to webhook`() = runTest {
         val webhook = webhooks[0]
-        val initializeEvent = createCloudEvent(AltinnEventType.INITIALIZED)
-        val publishedEvent = createCloudEvent(AltinnEventType.PUBLISHED).copy(
-            resourceinstance = initializeEvent.resourceinstance
-        )
+        val publishedEvent = createCloudEvent(AltinnEventType.PUBLISHED)
 
         waitForAvailableWebhooks()
 
-        webTestClient.post()
-            .uri("/$webhook")
-            .contentType(CLOUDEVENTS_JSON)
-            .bodyValue(initializeEvent.toJson())
-            .exchange()
-            .expectStatus().isOk
         webTestClient.post()
             .uri("/$webhook")
             .contentType(CLOUDEVENTS_JSON)
@@ -158,19 +158,9 @@ class CloudEventIntegrationTest(
     @MethodSource("no.kartverket.altinn3.events.server.Helpers#brokerWebhookArguments")
     fun `Should set up webhooks from settings in properties file`(webhook: String) = runTest {
         logger.info("Starting test on webhook: $webhook")
-        val initializeEvent = createCloudEvent(AltinnEventType.INITIALIZED)
-        val publishedEvent = createCloudEvent(AltinnEventType.PUBLISHED).copy(
-            resourceinstance = initializeEvent.resourceinstance
-        )
+        val publishedEvent = createCloudEvent(AltinnEventType.PUBLISHED)
 
         waitForAvailableWebhooks()
-
-        webTestClient.post()
-            .uri("/$webhook")
-            .contentType(CLOUDEVENTS_JSON)
-            .bodyValue(initializeEvent.toJson())
-            .exchange()
-            .expectStatus().isOk
 
         webTestClient.post()
             .uri("/$webhook")
@@ -183,11 +173,8 @@ class CloudEventIntegrationTest(
     @Test
     fun `Should return status code 500 and rollback changes if confirm download fails`() = runTest {
         val webhook = webhooks[0]
-        val event = createCloudEvent(AltinnEventType.INITIALIZED)
-        val publishedEvent = createCloudEvent(AltinnEventType.PUBLISHED).copy(
-            resourceinstance = event.resourceinstance
-        )
-        val resourceId = UUID.fromString(event.resourceinstance)
+        val publishedEvent = createCloudEvent(AltinnEventType.PUBLISHED)
+        val resourceId = UUID.fromString(publishedEvent.resourceinstance)
 
         waitForAvailableWebhooks()
 
@@ -197,12 +184,6 @@ class CloudEventIntegrationTest(
                 .willReturn(serverError())
         )
 
-        webTestClient.post()
-            .uri("/$webhook")
-            .contentType(CLOUDEVENTS_JSON)
-            .bodyValue(event.toJson())
-            .exchange()
-            .expectStatus().isOk
         webTestClient.post()
             .uri("/$webhook")
             .contentType(CLOUDEVENTS_JSON)
@@ -237,8 +218,9 @@ class CloudEventIntegrationTest(
 )
 @Import(PostgresTestContainersConfiguration::class, TransitRepositoryConfig::class)
 class RecoveryIntegrationTest(
-    @Autowired private val failedEventRepository: AltinnFailedEventRepository,
 ) {
+    @Autowired
+    private lateinit var failedEventRepository: AltinnFailedEventRepository
     private val altinnConfig: AltinnServerConfig = mockk(relaxed = true)
     private val eventLoader: EventLoader = mockk(relaxed = true)
     private val applicationEventPublisher: ApplicationEventPublisher = mockk(relaxed = true)
@@ -259,8 +241,8 @@ class RecoveryIntegrationTest(
 
     @Test
     fun `Should recover previously failed events`() = runTest {
-        val event1 = createCloudEvent(AltinnEventType.INITIALIZED)
-        val event2 = createCloudEvent(AltinnEventType.INITIALIZED)
+        val event1 = createCloudEvent(AltinnEventType.PUBLISHED)
+        val event2 = createCloudEvent(AltinnEventType.PUBLISHED)
         val failedEvents = listOf(
             AltinnFailedEvent(
                 altinnId = UUID.fromString(event1.id),

@@ -2,12 +2,10 @@ package no.kartverket.altinn3.events.server.service
 
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
 import no.kartverket.altinn3.client.EventsClient
 import no.kartverket.altinn3.events.apis.EventsApi
 import no.kartverket.altinn3.events.apis.SubscriptionApi
-import no.kartverket.altinn3.events.infrastructure.ApiClient
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.configuration.AltinnWebhooks
 import no.kartverket.altinn3.events.server.domain.*
@@ -22,15 +20,17 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationEventPublisher
-import org.springframework.web.client.RestClientResponseException
+import org.springframework.retry.support.RetryTemplate
+import java.time.OffsetDateTime
 import java.util.*
 import kotlin.time.Duration
 
 class EventLoader(
     private val eventsClient: EventsClient,
-    private val webhooks: AltinnWebhooks
+    private val webhooks: AltinnWebhooks,
+    private val retryTemplate: RetryTemplate,
 ) {
-    fun fetchAndMapEventsByResource(afterSupplier: (resource: String) -> String = { "0" }) =
+    fun fetchAndMapEventsByResource(recipientOrgNr: String, afterSupplier: (resource: String) -> String = { "0" }) =
         webhooks
             .groupBy({ it.resourceFilter!! }) { it.typeFilter }
             .map { (resource, type) ->
@@ -40,7 +40,7 @@ class EventLoader(
                 eventsClient.events.loadResourceEventType(
                     resource,
                     typesMaybe,
-                    subject = "/organisation/971040238",
+                    subject = "/organisation/${recipientOrgNr}",
                     afterSupplier = afterSupplier
                 )
             }
@@ -55,7 +55,9 @@ class EventLoader(
         var after: String = afterSupplier(resource)
         var page: List<CloudEvent>
         do {
-            page = eventsGet(resource, after, size = pageSize, type = type, subject = subject)
+            page = retryTemplate.execute<List<CloudEvent>, IllegalStateException> {
+                eventsGet(resource, after, size = pageSize, type = type, subject = subject)
+            }
             page.forEach { add(it) }
             if (page.isNotEmpty()) after = page.last().id!!
         } while (page.size == pageSize)
@@ -77,7 +79,7 @@ class AltinnBrokerSynchronizer(
     private val failedEventRepository: AltinnFailedEventRepository,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(javaClass)
-    var endEventId: String? = null
+    var eventRecievedInWebhooksCreatedAt: OffsetDateTime? = null
 
     private fun findAllFailedEvents(): Set<CloudEvent> {
         val failedEvents = failedEventRepository.findAll().sortedBy { it.created }
@@ -89,7 +91,7 @@ class AltinnBrokerSynchronizer(
         val failedEventsIds = failedEvents.map { it.altinnId.toString() }
 
         return buildSet {
-            eventLoader.fetchAndMapEventsByResource {
+            eventLoader.fetchAndMapEventsByResource(altinnConfig.recipientId) {
                 startId.toString()
             }
                 .flatten()
@@ -125,7 +127,7 @@ class AltinnBrokerSynchronizer(
         var lastSuccessfullId = startEventId
 
         logger.info("Synchronizing events from $startEventId")
-        val eventsFromAllResources = eventLoader.fetchAndMapEventsByResource { startEventId }
+        val eventsFromAllResources = eventLoader.fetchAndMapEventsByResource(altinnConfig.recipientId) { startEventId }
             .flatten()
             .sortedBy { it.time }
 
@@ -166,30 +168,28 @@ class AltinnBrokerSynchronizer(
         var poll = true
 
         while (poll) {
-            val eventsFromAllResources = eventLoader.fetchAndMapEventsByResource { resource ->
+            val eventsFromAllResources = eventLoader.fetchAndMapEventsByResource(altinnConfig.recipientId) { resource ->
                 lastSyncedEventPerWebhook[resource]?.id ?: startEventId
             }
                 .flatten()
                 .sortedBy { it.time }
 
             // Vi kan bare forkaste resten dersom vi finner endEventId, siden listen er sortert
-            val processUpToIndex =
-                eventsFromAllResources.find {
-                    it.id == endEventId
-                }.run {
-                    eventsFromAllResources.indexOf(this)
-                }.let { index ->
-                    if (index == -1) eventsFromAllResources.size else index + 1
-                }
+            val lastIndex = eventsFromAllResources.indexOfFirst {
+                eventRecievedInWebhooksCreatedAt != null && it.time!! >= eventRecievedInWebhooksCreatedAt
+            }
+                .takeUnless { it == -1 }
+                ?: eventsFromAllResources.lastIndex
 
             var lastSuccessfullId = startEventId
 
             eventsFromAllResources
-                .subList(0, processUpToIndex)
-                .forEach { event ->
+                .withIndex()
+                .take(lastIndex + 1)
+                .forEach { (_, event) ->
                     logger.debug("Polling event with ID: ${event.id}, resourceinstance: ${event.resourceinstance}")
-                    if (event.id == endEventId) {
-                        logger.info("Reached end-event. Stopping polling")
+                    if (eventRecievedInWebhooksCreatedAt != null && event.time!! >= eventRecievedInWebhooksCreatedAt) {
+                        logger.info("Polling now replaced by webhook. Stopping polling")
                         poll = false
                         applicationEventPublisher.publishEvent(PollingReachedEndEvent())
                     } else {
@@ -216,58 +216,45 @@ class AltinnBrokerSynchronizer(
     }
 }
 
-private const val API_RETRY_DELAY = 500L
-
 class AltinnWebhookInitializer(
     private val eventsClient: EventsClient,
     private val altinnWebhooks: AltinnWebhooks,
     private val applicationEventPublisher: ApplicationEventPublisher,
+    private val retryTemplate: RetryTemplate,
 ) : DisposableBean {
     private lateinit var subscriptions: Set<Subscription>
     private val logger: Logger = LoggerFactory.getLogger(javaClass)
 
-    private fun SubscriptionApi.setUpSubscriptions(): Flow<Subscription> {
+    private fun SubscriptionApi.setUpSubscriptions(): Collection<Subscription> {
         return altinnWebhooks.map { webhook ->
-            retryWrapApiCall {
+            retryTemplate.execute<Subscription, IllegalStateException> {
                 subscriptionsPost(
                     SubscriptionRequestModel(
                         endPoint = altinnWebhooks.webhookEndpoint(webhook),
                         resourceFilter = webhook.resourceFilter,
-                        typeFilter = webhook.typeFilter
+                        typeFilter = webhook.typeFilter,
+                        subjectFilter = webhook.subjectFilter,
                     )
                 )
             }
-        }.merge().onEach {
+        }.onEach {
             logger.info("new Altinn subscription: $it")
         }
     }
 
-    private fun SubscriptionApi.deleteAll(): Flow<Int> {
-        return subscriptions.map {
-            retryWrapApiCall(retries = 5) {
-                this.subscriptionsIdDelete(it.id!!)
-                it.id!!
-            }
-        }.merge().onEach { logger.info("Altinn subscription id($it) deleted") }
-    }
-
-    private fun <T : ApiClient, R> T.retryWrapApiCall(retries: Long = 2, apiCall: T.() -> R): Flow<R> {
-        return flow {
-            emit(apiCall())
-        }.retry(retries) { t ->
-            when (t) {
-                is RestClientResponseException -> !t.statusCode.isError
-                else -> false
-            }.also {
-                if (it) delay(API_RETRY_DELAY)
-            }
-        }
+    private fun SubscriptionApi.deleteAll(): Collection<Int> {
+        return subscriptions.map { subscription ->
+            retryTemplate.execute<Unit, IllegalStateException> { this.subscriptionsIdDelete(subscription.id!!) }
+            subscription.id!!
+        }.onEach { logger.info("Altinn subscription id($it) deleted") }
     }
 
     override fun destroy() = runBlocking {
-        if (::subscriptions.isInitialized) eventsClient.subscription.deleteAll().catch {
+        if (::subscriptions.isInitialized) runCatching {
+            eventsClient.subscription.deleteAll()
+        }.onFailure {
             logger.error("delete subscriptions error", it)
-        }.collect()
+        }
     }
 
     suspend fun setupWebhooks() = coroutineScope {

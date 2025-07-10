@@ -1,6 +1,11 @@
 package no.kartverket.altinn3.events.server.configuration
 
-import no.kartverket.altinn3.events.server.domain.state.*
+import no.kartverket.altinn3.events.server.domain.state.AltinnProxyState
+import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
+import no.kartverket.altinn3.events.server.handler.AltinnProxyStateMachineHeader
+import no.kartverket.altinn3.events.server.handler.AltinnStateMachineMediator
+import no.kartverket.altinn3.events.server.handler.StateMachineActions
+import no.kartverket.altinn3.events.server.handler.StateMachineHandler
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.support.beans
@@ -42,6 +47,11 @@ class AltinnProxyStateMachineConfig(
         syncToPollingTransition(transitions)
             .and()
         pollingToWebhooksTransitions(transitions)
+            .and()
+            .withExternal()
+            .target(AltinnProxyState.ERROR)
+            .event(AltinnProxyStateMachineEvent.FATAL_ERROR)
+
     }
 
     override fun configure(
@@ -92,7 +102,7 @@ class AltinnProxyStateMachineConfig(
         } else true
 
     private fun stopPollingGuard(ctx: StateContext<AltinnProxyState, AltinnProxyStateMachineEvent>) =
-        if (ctx.message.headers[AltinnProxyStateMachineHeader.WEBHOOK_EVENT_ID.name] != null)
+        if (ctx.message.headers[AltinnProxyStateMachineHeader.WEBHOOK_CLOUD_EVENT_TIME.name] != null)
             true
         else {
             logger.error("INVALID TRANSITION: End event from webhook not set")

@@ -3,8 +3,8 @@ package no.kartverket.altinn3.events.server.configuration
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
 import no.kartverket.altinn3.events.server.domain.SubscriptionValidatedEvent
 import no.kartverket.altinn3.events.server.domain.WebhookHandlerReadyEvent
-import no.kartverket.altinn3.events.server.domain.state.StateMachineWebhookAvailabilityStatus
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
+import no.kartverket.altinn3.events.server.handler.StateMachineWebhookAvailabilityStatus
 import no.kartverket.altinn3.events.server.service.AltinnFilAlreadySavedException
 import no.kartverket.altinn3.models.CloudEvent
 import org.slf4j.Logger
@@ -52,10 +52,11 @@ class DefaultWebhookHandler(
 
         val onSuccess = suspend {
             if (firstWebhookEvent) {
-                applicationEventPublisher.publishEvent(WebhookHandlerReadyEvent(event.id.toString()))
+                applicationEventPublisher.publishEvent(
+                    WebhookHandlerReadyEvent(requireNotNull(event.time))
+                )
                 firstWebhookEvent = false
             }
-
             ServerResponse.ok().buildAndAwait()
         }
 
@@ -120,6 +121,10 @@ class WebhooksRouterProvider(
             logger.debug("Setting up webhook: {}", it)
             val handler: WebhookHandler = context.getBean(it.handler, WebhookHandler::class.java)
             POST("${it.path}", accept(CLOUDEVENTS_JSON), WebhookRequestHandler(handler, applicationEventPublisher))
+        }.also {
+            GET("/webhooks/ready") {
+                ServerResponse.ok().buildAndAwait()
+            }
         }
     }
 }
