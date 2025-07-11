@@ -174,7 +174,8 @@ class AltinnBrokerSynchronizer(
                 .flatten()
                 .sortedBy { it.time }
 
-            // Vi kan bare forkaste resten dersom vi finner endEventId, siden listen er sortert
+            // Vi kan bare forkaste resten dersom time er større eller
+            // lik eventRecievedInWebhooksCreatedAt, siden listen er sortert
             val lastIndex = eventsFromAllResources.indexOfFirst {
                 eventRecievedInWebhooksCreatedAt != null && it.time!! >= eventRecievedInWebhooksCreatedAt
             }
