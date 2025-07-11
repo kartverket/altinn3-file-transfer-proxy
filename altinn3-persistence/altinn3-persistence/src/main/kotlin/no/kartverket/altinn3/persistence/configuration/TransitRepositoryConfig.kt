@@ -36,6 +36,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.support.TransactionTemplate
 import java.sql.JDBCType
 import java.util.*
 import javax.sql.DataSource
@@ -72,6 +73,10 @@ class TransitDataSourceConfig {
         @Qualifier("transitDataSource") ds: DataSource
     ): PlatformTransactionManager =
         DataSourceTransactionManager(ds)
+
+    @Bean("transitTransactionTemplate")
+    fun transactionTemplate(@Qualifier("transitTxManager") transactionManager: PlatformTransactionManager) =
+        TransactionTemplate(transactionManager)
 }
 
 @Component
