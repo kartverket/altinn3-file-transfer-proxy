@@ -4,7 +4,7 @@ coroutines = "1.10.2"
 spring-boot = "3.5.4"
 jackson = "2.19.2"
 testcontainers = "1.21.3"
-flyway = "11.10.5"
+flyway = "11.11.0"
 mockk = "1.14.5"
 
 [libraries]
@@ -27,7 +27,7 @@ logstash = { module = "net.logstash.logback:logstash-logback-encoder", version =
 slf4j = { module = "org.slf4j:slf4j-api", version = "2.0.17" }
 logback = { module = "ch.qos.logback:logback-classic", version = "1.5.18" }
 detekt-klint = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version = "1.23.8" }
-micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version = "1.15.2" }
+micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version = "1.15.3" }
 
 # Test libs
 spring-boot-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
