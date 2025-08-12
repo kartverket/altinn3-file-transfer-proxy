@@ -6,7 +6,6 @@ import no.kartverket.altinn3.client.BrokerClient
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
 import no.kartverket.altinn3.events.server.service.AltinnTransitService
-import no.kartverket.altinn3.events.server.service.toAltinnEventEntity
 import no.kartverket.altinn3.models.CloudEvent
 import no.kartverket.altinn3.models.FileOverview
 import no.kartverket.altinn3.models.FileTransferStatus
@@ -68,8 +67,7 @@ class CloudEventHandler(
 
         if (!isReady) {
             logger.debug("Ignoring event with event id ${event.id}.")
-            
-            altinnTransitService.saveAltinnEvent(event.toAltinnEventEntity())
+
             return false
         }
 
