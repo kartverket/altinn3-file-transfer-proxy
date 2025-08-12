@@ -9,7 +9,7 @@ import java.util.*
 data class AltinnFailedEvent(
     val altinnId: UUID,
     val previousEventId: UUID,
-    val altinnProxyState: String,
+    val altinnProxyState: String? = null,
     val created: LocalDateTime = LocalDateTime.now(),
     @Id
     val id: UUID? = null,
