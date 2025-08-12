@@ -1,18 +1,20 @@
 package no.kartverket.altinn3.events.server.domain.state
 
-enum class AltinnProxyStateMachineEvent {
-    START_RECOVERY,
-    RECOVERY_FAILED,
-    START_SYNC,
-    SYNC_COMPLETE,
-    SYNC_FAILED,
-    POLLING_FAILED,
-    START_WEBHOOKS,
-    WEBHOOK_INITIALIZED,
-    WEBHOOKS_FAILED,
-    WAIT_FOR_VALIDATION_CLOUD_EVENT,
-    WEBHOOK_READY,
-    WEBHOOK_EVENT_REACHED_IN_POLLING,
-    FATAL_ERROR,
-    STOP
+import no.kartverket.altinn3.persistence.AltinnFailedEvent
+import java.time.OffsetDateTime
+
+sealed class AltinnProxyStateMachineEvent {
+    class StartRecovery : AltinnProxyStateMachineEvent()
+    class RecoveryFailed : AltinnProxyStateMachineEvent()
+    class RecoverySucceeded : AltinnProxyStateMachineEvent()
+    class SyncFailed : AltinnProxyStateMachineEvent()
+    class SyncSucceeded(val lastSyncedEvent: String) : AltinnProxyStateMachineEvent()
+    class PollingFailed(val failedEvent: AltinnFailedEvent) : AltinnProxyStateMachineEvent()
+    class PollingSucceeded : AltinnProxyStateMachineEvent()
+    class WebhookInitialized : AltinnProxyStateMachineEvent()
+    class WebhookValidated : AltinnProxyStateMachineEvent()
+    class WebhookFailed : AltinnProxyStateMachineEvent()
+    class WebhookReady(val cloudEventTime: OffsetDateTime) : AltinnProxyStateMachineEvent()
+    class CriticalError(t: Throwable? = null) : AltinnProxyStateMachineEvent()
+    class Stop : AltinnProxyStateMachineEvent()
 }

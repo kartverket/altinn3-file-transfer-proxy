@@ -53,7 +53,7 @@ class TransitPollerTest {
         coEvery { handler.sendResponseTilInnsender(any(), any()) } returns randomUuid
         coEvery { altinnTransitService.completeFileTransfer(any()) } returns Unit
 
-        TransitPoller(config, altinnTransitService, handler).poll()
+        TransitPoller(config, altinnTransitService, handler, mockk()).poll()
 
         coVerify(exactly = 1) { handler.sendResponseTilInnsender(fileOverview, file) }
         coVerify(exactly = 1) { altinnTransitService.completeFileTransfer(any()) }
@@ -69,7 +69,7 @@ class TransitPollerTest {
             emptyMap()
         }
 
-        TransitPoller(config, altinnTransitService, handler).poll()
+        TransitPoller(config, altinnTransitService, handler, mockk()).poll()
 
         coVerify(exactly = 0) { handler.sendResponseTilInnsender(any(), any()) }
         coVerify(exactly = 0) { altinnTransitService.completeFileTransfer(any()) }
@@ -96,7 +96,7 @@ class TransitPollerTest {
         }
         coEvery { altinnTransitService.completeFileTransfer(any()) } returns Unit
 
-        val poller = spyk(TransitPoller(config, altinnTransitService, handler))
+        val poller = spyk(TransitPoller(config, altinnTransitService, handler, mockk()))
         val event = mockk<ApplicationReadyEvent>(relaxed = true)
         poller.onApplicationEvent(event)
         delay(200)

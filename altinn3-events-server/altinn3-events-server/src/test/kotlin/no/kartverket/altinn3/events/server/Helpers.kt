@@ -12,6 +12,7 @@ import no.kartverket.altinn3.events.server.domain.AltinnEventType
 import no.kartverket.altinn3.models.CloudEvent
 import no.kartverket.altinn3.models.FileOverview
 import no.kartverket.altinn3.models.FileStatus
+import no.kartverket.altinn3.models.RecipientFileTransferStatusDetailsExt
 import org.junit.jupiter.params.provider.Arguments
 import java.net.URI
 import java.time.OffsetDateTime
@@ -35,6 +36,8 @@ private class CloudEventSerializer : JsonSerializer<CloudEvent>() {
         gen.writeEndObject()
     }
 }
+
+const val RECIPIENT_ORG_NR = "1234:123456789"
 
 object Helpers {
     val webhooks = arrayOf("test.event", "the.event", "osv.event")
@@ -61,6 +64,7 @@ object Helpers {
             fileTransferId = UUID.fromString(event.resourceinstance),
             resourceId = "kv_devtest",
             fileTransferStatus = status,
+            recipients = listOf(RecipientFileTransferStatusDetailsExt(recipient = RECIPIENT_ORG_NR)),
             created = event.time,
             fileName = "file.xml",
             sender = "innsendtFraTest",

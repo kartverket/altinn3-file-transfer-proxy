@@ -2,18 +2,17 @@ package no.kartverket.altinn3.events.server.handler
 
 import kotlinx.coroutines.launch
 import no.kartverket.altinn3.events.server.configuration.Scopes
-import no.kartverket.altinn3.events.server.domain.*
-import no.kartverket.altinn3.events.server.domain.state.AltinnProxyState
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
+import no.kartverket.altinn3.events.server.domain.state.State
 import no.kartverket.altinn3.events.server.service.AltinnBrokerSynchronizer
 import no.kartverket.altinn3.events.server.service.AltinnWebhookInitializer
 import no.kartverket.altinn3.events.server.service.HandlePollEventFailedException
 import no.kartverket.altinn3.persistence.AltinnFailedEvent
 import no.kartverket.altinn3.persistence.AltinnFailedEventRepository
 import org.slf4j.LoggerFactory
+import org.springframework.boot.SpringApplication
+import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationEventPublisher
-import org.springframework.statemachine.StateMachine
-import org.springframework.statemachine.listener.StateMachineListenerAdapter
 import java.time.OffsetDateTime
 import java.util.*
 import java.util.function.Supplier
@@ -24,73 +23,76 @@ class StateMachineActions(
     private val altinnSynchronizer: AltinnBrokerSynchronizer,
     private val altinnWebhookInitializer: AltinnWebhookInitializer,
     private val altinnFailedEventRepository: AltinnFailedEventRepository,
-    private val applicationEventPublisher: ApplicationEventPublisher
-) : StateMachineListenerAdapter<AltinnProxyState, AltinnProxyStateMachineEvent>() {
+    private val applicationEventPublisher: ApplicationEventPublisher,
+    private val applicationContext: ApplicationContext,
+) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun onCriticalError(stateMachine: StateMachine<AltinnProxyState, AltinnProxyStateMachineEvent>) {
+    fun onCriticalError(state: State) {
         logger.error("CRITICAL ERROR!")
-        logger.error("Error in StateMachine: {}", stateMachine)
-        exitProcess(1)
+        logger.error("Error in StateMachine: {}", state)
+        exitProcess(SpringApplication.exit(applicationContext, { 1 }))
     }
 
     fun onRecoveryRequested() {
-        Scopes.altinnScope.launch {
+        Scopes.altinnProxyScope.launch {
             runCatching {
                 altinnSynchronizer.recoverFailedEvents()
             }.onFailure {
                 logger.error("Failed to restore previously failed events")
                 logger.error(it.message)
                 logger.error(it.stackTraceToString())
-                applicationEventPublisher.publishEvent(RecoveryFailedEvent())
+                applicationEventPublisher.publishEvent(AltinnProxyStateMachineEvent.RecoveryFailed())
             }
         }
     }
 
 
-    fun onSyncRequestedEvent() {
-        Scopes.altinnScope.launch {
+    fun onSyncRequested() {
+        Scopes.altinnProxyScope.launch {
             runCatching {
                 var syncFromEvent = startEventSupplier.get()
                 logger.debug("Starting syncing from event: $syncFromEvent")
                 altinnSynchronizer.sync(syncFromEvent)
             }.onFailure {
-                applicationEventPublisher.publishEvent(SyncFailedEvent())
+                applicationEventPublisher.publishEvent(AltinnProxyStateMachineEvent.SyncFailed())
             }
         }
     }
 
     fun onPollRequestedEvent(
         lastSyncedEvent: String,
-        stateMachine: StateMachine<AltinnProxyState, AltinnProxyStateMachineEvent>
     ) {
-        Scopes.altinnScope.launch {
-            runCatching {
-                altinnSynchronizer.poll(lastSyncedEvent)
-            }.onFailure {
-                val eventToPublish = when (it) {
-                    is HandlePollEventFailedException -> {
-                        logger.error(
-                            "Could not poll event with id: {}\nWill try to persist error state.",
-                            it.failedEventID
-                        )
-                        PollingFailedEvent(
-                            AltinnFailedEvent(
-                                altinnId = UUID.fromString(it.failedEventID),
-                                previousEventId = UUID.fromString(it.pollFromEventId),
-                                altinnProxyState = stateMachine.state.id.name
-                            )
-                        )
-                    }
+        Scopes.altinnProxyScope.launch {
+            startPolling(lastSyncedEvent)
+        }
+    }
 
-                    else -> {
-                        logger.error("Something went wrong when polling for event.")
-                        logger.error(it.message)
-                        FatalErrorEvent()
-                    }
+    private suspend fun startPolling(lastSyncedEvent: String) {
+        runCatching {
+            altinnSynchronizer.poll(lastSyncedEvent)
+        }.onFailure {
+            val eventToPublish = when (it) {
+                is HandlePollEventFailedException -> {
+                    logger.error(
+                        "Could not poll event with id: {}\nWill try to persist error state.",
+                        it.failedEventID
+                    )
+                    AltinnProxyStateMachineEvent.PollingFailed(
+                        AltinnFailedEvent(
+                            altinnId = UUID.fromString(it.failedEventID),
+                            previousEventId = UUID.fromString(it.pollFromEventId),
+                        )
+                    )
                 }
-                applicationEventPublisher.publishEvent(eventToPublish)
+
+                else -> {
+                    logger.error("Something went wrong when polling for event.")
+                    logger.error(it.message)
+                    AltinnProxyStateMachineEvent.CriticalError(it)
+                }
             }
+            applicationEventPublisher.publishEvent(eventToPublish)
         }
     }
 
@@ -110,19 +112,24 @@ class StateMachineActions(
         }
     }
 
-    fun onSetupWebhooksRequestedEvent() {
-        Scopes.altinnScope.launch {
-            runCatching {
-                altinnWebhookInitializer.setupWebhooks()
-            }.onFailure {
-                logger.error("Setup webhooks failed: {}", it.message)
-                logger.error(it.stackTraceToString())
-                applicationEventPublisher.publishEvent(SetupWebhooksFailedEvent())
+    fun onSetupWebhooksRequested(lastSyncedEvent: String) {
+        Scopes.altinnProxyScope.launch {
+            launch {
+                startPolling(lastSyncedEvent)
+            }
+            launch {
+                runCatching {
+                    altinnWebhookInitializer.setupWebhooks()
+                }.onFailure {
+                    logger.error("Setup webhooks failed: {}", it.message)
+                    logger.error(it.stackTraceToString())
+                    applicationEventPublisher.publishEvent(AltinnProxyStateMachineEvent.WebhookFailed())
+                }
             }
         }
     }
 
-    fun onStopPollingRequestedEvent(cloudEventTime: OffsetDateTime) {
+    fun onStopPollingRequested(cloudEventTime: OffsetDateTime) {
         altinnSynchronizer.eventRecievedInWebhooksCreatedAt = cloudEventTime
     }
 }

@@ -10,8 +10,10 @@ import org.springframework.boot.runApplication
 import org.springframework.context.ApplicationContextInitializer
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.ImportRuntimeHints
+import org.springframework.context.event.EventListenerMethodProcessor
 import org.springframework.context.support.GenericApplicationContext
 import org.springframework.context.support.beans
+import org.springframework.context.support.registerBean
 
 @ImportRuntimeHints(NativeHints::class)
 @SpringBootApplication
@@ -28,6 +30,7 @@ fun main(args: Array<String>) = runBlocking<Unit> {
 
 class ApplicationBeansInitializer : ApplicationContextInitializer<GenericApplicationContext> {
     override fun initialize(applicationContext: GenericApplicationContext) {
+        applicationContext.registerBean<EventListenerMethodProcessor>()
         beans {
             bean<Scopes.Shutdown>()
         }.initialize(applicationContext)

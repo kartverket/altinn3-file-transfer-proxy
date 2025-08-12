@@ -8,8 +8,7 @@ import no.kartverket.altinn3.events.apis.EventsApi
 import no.kartverket.altinn3.events.apis.SubscriptionApi
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.configuration.AltinnWebhooks
-import no.kartverket.altinn3.events.server.domain.*
-import no.kartverket.altinn3.events.server.handler.AltinnWarningException
+import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
 import no.kartverket.altinn3.models.CloudEvent
 import no.kartverket.altinn3.models.Subscription
@@ -103,6 +102,11 @@ class AltinnBrokerSynchronizer(
         }.toSet()
     }
 
+    // Hovedtanken bak failed events er i et scenario hvor sync er ferdig, og webhook er i ferd med å overta for polling.
+    // Dersom webhook prosesserer et event B, og polling feiler på et event A som er sendt mellom sync og når webhook(s) er satt opp, vil
+    // polling bevisst ta ned applikasjonen. Når den starter igjen neste gang, vil event B være lagret som det siste eventet.
+    // Synkroniseringen benytter dette som startpunkt, og vi har fått et hull hvor vi mangler event A.
+    // I stedet lagres nå "failed events", og disse er de første som behandles ved oppstart.
     suspend fun recoverFailedEvents() {
         val previouslyFailedEvents = findAllFailedEvents()
         if (previouslyFailedEvents.size > 0) {
@@ -120,7 +124,7 @@ class AltinnBrokerSynchronizer(
             logger.info("No previously failed events found")
         }
 
-        applicationEventPublisher.publishEvent(RecoveryDoneEvent())
+        applicationEventPublisher.publishEvent(AltinnProxyStateMachineEvent.RecoverySucceeded())
     }
 
     suspend fun sync(startEventId: String = "0") = coroutineScope {
@@ -142,18 +146,14 @@ class AltinnBrokerSynchronizer(
                         lastSuccessfullId = eventId
                     },
                     onFailure = {
-                        if (it is AltinnWarningException) {
-                            lastSuccessfullId = eventId
-                        } else {
-                            logger.debug("Failed to sync event with ID: $eventId")
-                            throw HandleSyncEventFailedException(lastSuccessfullId)
-                        }
+                        logger.debug("Failed to sync event with ID: $eventId")
+                        throw HandleSyncEventFailedException(lastSuccessfullId)
                     }
                 )
             }
 
         applicationEventPublisher.publishEvent(
-            AltinnSyncFinishedEvent(lastSuccessfullId)
+            AltinnProxyStateMachineEvent.SyncSucceeded(lastSuccessfullId)
         )
     }
 
@@ -163,11 +163,11 @@ class AltinnBrokerSynchronizer(
         // Det har liten praktisk betydning for oss så lenge vi sorterer listen,
         // men det kan se litt rart ut i loggen hvis man ikke er klar over det.
         logger.info("Starting polling from eventId $startEventId")
-        applicationEventPublisher.publishEvent(PollingStartedEvent())
         val lastSyncedEventPerWebhook = mutableMapOf<String, CloudEvent>()
         var poll = true
 
         while (poll) {
+            logger.debug("Polling Altinn")
             val eventsFromAllResources = eventLoader.fetchAndMapEventsByResource(altinnConfig.recipientId) { resource ->
                 lastSyncedEventPerWebhook[resource]?.id ?: startEventId
             }
@@ -192,7 +192,9 @@ class AltinnBrokerSynchronizer(
                     if (eventRecievedInWebhooksCreatedAt != null && event.time!! >= eventRecievedInWebhooksCreatedAt) {
                         logger.info("Polling now replaced by webhook. Stopping polling")
                         poll = false
-                        applicationEventPublisher.publishEvent(PollingReachedEndEvent())
+                        applicationEventPublisher.publishEvent(
+                            AltinnProxyStateMachineEvent.PollingSucceeded()
+                        )
                     } else {
                         val eventId = requireNotNull(event.id)
                         cloudEventHandler.tryHandle(
@@ -261,6 +263,6 @@ class AltinnWebhookInitializer(
     suspend fun setupWebhooks() = coroutineScope {
         subscriptions = eventsClient.subscription.setUpSubscriptions().toCollection(hashSetOf())
         logger.info("setup subscriptions: completed")
-        applicationEventPublisher.publishEvent(SetupSubscriptionsDoneEvent())
+        applicationEventPublisher.publishEvent(AltinnProxyStateMachineEvent.WebhookInitialized())
     }
 }

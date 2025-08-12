@@ -2,7 +2,6 @@ package no.kartverket.altinn3.events.server.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
-import no.kartverket.altinn3.events.server.handler.AltinnWarningException
 import no.kartverket.altinn3.models.CloudEvent
 import no.kartverket.altinn3.models.FileOverview
 import no.kartverket.altinn3.persistence.*
@@ -14,7 +13,7 @@ import java.time.LocalDateTime
 import java.util.*
 import java.util.function.Supplier
 
-private fun CloudEvent.toAltinnEventEntity() = AltinnEvent(
+fun CloudEvent.toAltinnEventEntity() = AltinnEvent(
     specVersion = specversion,
     altinnId = UUID.fromString(id),
     type = type,
@@ -54,8 +53,6 @@ fun createAltinnStartEventSupplier(
 
     return Supplier { configuredEventId }
 }
-
-class AltinnFilAlreadySavedException(message: String) : IllegalStateException(message), AltinnWarningException
 
 @EnableConfigurationProperties(AltinnServerConfig::class)
 open class AltinnTransitService(
@@ -133,7 +130,7 @@ open class AltinnTransitService(
         logger.info("Saved altinn fil with file reference: {} ", fileTransferId)
     }
 
-    private fun saveAltinnEvent(altinnEvent: AltinnEvent) {
+    fun saveAltinnEvent(altinnEvent: AltinnEvent) {
         if (!altinnServerConfig.persistCloudEvent)
             return
 

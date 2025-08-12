@@ -18,7 +18,7 @@ import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.configuration.CLOUDEVENTS_JSON
 import no.kartverket.altinn3.events.server.configuration.WebhookAvailabilityStatus
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
-import no.kartverket.altinn3.events.server.domain.state.AltinnProxyState
+import no.kartverket.altinn3.events.server.domain.state.State
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
 import no.kartverket.altinn3.events.server.service.AltinnBrokerSynchronizer
 import no.kartverket.altinn3.events.server.service.EventLoader
@@ -55,7 +55,7 @@ import kotlin.test.Test
 const val WIREMOCK_PORT = 9292
 
 // Workaround for å spinne opp wiremocks FØR applikasjonen begynner å sende requests,
-// og fortsette å ta imot trafikk når SIGINT får applikasjonen til å slette subscriptions.
+// og fortsette å ta imot trafikk når SIGTERM får applikasjonen til å slette subscriptions.
 // Mappings ligger i test/resources/mappings
 class WireMockInitializer : ApplicationContextInitializer<ConfigurableApplicationContext> {
     override fun initialize(applicationContext: ConfigurableApplicationContext) {
@@ -86,9 +86,11 @@ class WireMockInitializer : ApplicationContextInitializer<ConfigurableApplicatio
     properties = [
         "logging.level.com.github.tomakehurst.wiremock=DEBUG",
         "logging.level.no.kartverket=debug",
-        "altinn.persist-altinn-file=true",
+        "spring.flyway.enabled=true",
         "altinn.retry.max-attempts=1",
         "altinn.persist-cloud-event=true",
+        "altinn.persist-altinn-file=true",
+        "altinn.recipient-id=123456789",
         "altinn.send-response=true",
         "server.port=8181",
         "altinn.webhook-external-url=http://127.0.0.1:8181",
@@ -217,8 +219,7 @@ class CloudEventIntegrationTest {
     ]
 )
 @Import(PostgresTestContainersConfiguration::class, TransitRepositoryConfig::class)
-class RecoveryIntegrationTest(
-) {
+class RecoveryIntegrationTest {
     @Autowired
     private lateinit var failedEventRepository: AltinnFailedEventRepository
     private val altinnConfig: AltinnServerConfig = mockk(relaxed = true)
@@ -226,13 +227,15 @@ class RecoveryIntegrationTest(
     private val applicationEventPublisher: ApplicationEventPublisher = mockk(relaxed = true)
     private val cloudEventHandler: CloudEventHandler = mockk(relaxed = true)
 
-    val brokerSynchronizer = AltinnBrokerSynchronizer(
-        eventLoader,
-        cloudEventHandler,
-        applicationEventPublisher,
-        altinnConfig,
-        failedEventRepository
-    )
+    val brokerSynchronizer by lazy {
+        AltinnBrokerSynchronizer(
+            eventLoader,
+            cloudEventHandler,
+            applicationEventPublisher,
+            altinnConfig,
+            failedEventRepository
+        )
+    }
 
     @AfterEach
     fun cleanup() {
@@ -246,12 +249,12 @@ class RecoveryIntegrationTest(
         val failedEvents = listOf(
             AltinnFailedEvent(
                 altinnId = UUID.fromString(event1.id),
-                altinnProxyState = AltinnProxyState.POLL_AND_WEBHOOKS.name,
+                altinnProxyState = State.PollAndWebhook::class.simpleName,
                 previousEventId = UUID.randomUUID(),
             ),
             AltinnFailedEvent(
                 altinnId = UUID.fromString(event2.id),
-                altinnProxyState = AltinnProxyState.POLL_AND_WEBHOOKS.name,
+                altinnProxyState = State.PollAndWebhook::class.simpleName,
                 previousEventId = UUID.fromString(event1.id),
             )
         )
@@ -259,7 +262,7 @@ class RecoveryIntegrationTest(
 
         assertThat(failedEventRepository.findAll()).hasSize(2)
 
-        every { eventLoader.fetchAndMapEventsByResource(any()) } returns listOf(setOf(event1, event2))
+        every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(setOf(event1, event2))
         coEvery { cloudEventHandler.handle(any()) } just runs
 
         brokerSynchronizer.recoverFailedEvents()

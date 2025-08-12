@@ -1,15 +1,14 @@
 package no.kartverket.altinn3.events.server.domain.state
 
-enum class AltinnProxyState {
-    INITIAL,
-    STARTUP_RECOVERY,
-    ERROR,
-    SYNCHRONIZING,
-    POLLING,
-    SETUP_WEBHOOKS,
-    WEBHOOKS_PENDING_VALIDATION,
-    POLL_AND_WEBHOOKS,
-    STOP_POLLING,
-    WEBHOOKS,
-    STOPPING
+sealed class State {
+    object Initial : State()
+    object StartupRecovery : State()
+    object Error : State()
+    object Synchronize : State()
+    object Poll : State()
+    object SetupWebhook : State()
+    object PendingValidation : State()
+    object PollAndWebhook : State()
+    object Webhook : State()
+    object Stop : State()
 }

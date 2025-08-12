@@ -1,198 +1,197 @@
 package no.kartverket.altinn3.events.server.configuration
 
-import no.kartverket.altinn3.events.server.domain.state.AltinnProxyState
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
-import no.kartverket.altinn3.events.server.handler.AltinnProxyStateMachineHeader
-import no.kartverket.altinn3.events.server.handler.AltinnStateMachineMediator
+import no.kartverket.altinn3.events.server.domain.state.State
 import no.kartverket.altinn3.events.server.handler.StateMachineActions
-import no.kartverket.altinn3.events.server.handler.StateMachineHandler
+import no.kartverket.altinn3.events.server.service.StateMachine
 import org.slf4j.LoggerFactory
-import org.springframework.context.annotation.Configuration
+import org.springframework.context.SmartLifecycle
+import org.springframework.context.SmartLifecycle.DEFAULT_PHASE
+import org.springframework.context.event.EventListener
 import org.springframework.context.support.beans
 import org.springframework.core.env.Environment
-import org.springframework.statemachine.StateContext
-import org.springframework.statemachine.config.EnableStateMachineFactory
-import org.springframework.statemachine.config.EnumStateMachineConfigurerAdapter
-import org.springframework.statemachine.config.StateMachineFactory
-import org.springframework.statemachine.config.builders.StateMachineConfigurationConfigurer
-import org.springframework.statemachine.config.builders.StateMachineStateConfigurer
-import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer
-import org.springframework.statemachine.listener.StateMachineListenerAdapter
-import org.springframework.statemachine.state.State
 
 val stateConfig = beans {
-    bean<AltinnStateMachineMediator>()
     bean<StateMachineActions>()
-    bean<StateMachineHandler>()
     bean {
-        ref<StateMachineFactory<AltinnProxyState, AltinnProxyStateMachineEvent>>().stateMachine
+        initializeStateMachine(ref(), ref())
+    }
+    bean<StateMachineHandler>()
+}
+
+class StateMachineWebhookAvailabilityStatus(
+    private val stateMachine: StateMachine<State, AltinnProxyStateMachineEvent, SideEffect>
+) : WebhookAvailabilityStatus {
+    override fun isAvailable(): Boolean {
+        val statesOpenForRequests =
+            listOf(State.Webhook, State.PollAndWebhook)
+
+        return statesOpenForRequests.contains(stateMachine.state)
     }
 }
 
-const val ALTINN_PROXY_STATE_MACHINE_ID = "altinn-proxy"
+sealed class SideEffect {
+    object RecoveryRequested : SideEffect()
+    object RecoveryFailed : SideEffect()
+    object SyncRequested : SideEffect()
+    object SyncFailed : SideEffect()
+    object PollRequested : SideEffect()
+    object PollFailed : SideEffect()
+    object WebhookRequested : SideEffect()
+    object WebbhookFailed : SideEffect()
+    object StopPollRequested : SideEffect()
+    object CriticalError : SideEffect()
+}
 
-@Configuration
-@EnableStateMachineFactory
-class AltinnProxyStateMachineConfig(
-    private val environment: Environment,
-    private val handler: StateMachineHandler
-) : EnumStateMachineConfigurerAdapter<AltinnProxyState, AltinnProxyStateMachineEvent>() {
-    private val logger = LoggerFactory.getLogger(javaClass)
+private const val PHASE_BEFORE_NETTY = DEFAULT_PHASE - 2056
 
-    override fun configure(
-        transitions: StateMachineTransitionConfigurer<AltinnProxyState, AltinnProxyStateMachineEvent>
-    ) {
-        initialToSyncTransitions(transitions)
-            .and()
-        syncToPollingTransition(transitions)
-            .and()
-        pollingToWebhooksTransitions(transitions)
-            .and()
-            .withExternal()
-            .target(AltinnProxyState.ERROR)
-            .event(AltinnProxyStateMachineEvent.FATAL_ERROR)
+class StateMachineHandler(private val sm: StateMachine<State, AltinnProxyStateMachineEvent, SideEffect>) :
+    SmartLifecycle {
+    private var started = false
 
+    @EventListener
+    fun onApplicationEvent(event: AltinnProxyStateMachineEvent) {
+        sm.transition(event)
     }
 
-    override fun configure(
-        states: StateMachineStateConfigurer<AltinnProxyState, AltinnProxyStateMachineEvent>
-    ) {
-        states
-            .withStates()
-            .initial(AltinnProxyState.INITIAL)
-            .state(AltinnProxyState.ERROR)
-            .state(AltinnProxyState.STARTUP_RECOVERY)
-            .state(AltinnProxyState.SYNCHRONIZING)
-            .state(AltinnProxyState.POLLING)
-            .state(AltinnProxyState.SETUP_WEBHOOKS)
-            .state(AltinnProxyState.WEBHOOKS_PENDING_VALIDATION)
-            .state(AltinnProxyState.POLL_AND_WEBHOOKS)
-            .state(AltinnProxyState.STOP_POLLING)
-            .state(AltinnProxyState.WEBHOOKS)
-            .state(AltinnProxyState.STOPPING)
+    override fun start() {
+        sm.transition(AltinnProxyStateMachineEvent.StartRecovery())
+        started = true
     }
 
-    override fun configure(
-        config: StateMachineConfigurationConfigurer<AltinnProxyState, AltinnProxyStateMachineEvent>
-    ) {
-        config
-            .withConfiguration()
-            .autoStartup(false)
-            .machineId(ALTINN_PROXY_STATE_MACHINE_ID)
-            .listener(transitionLogger)
-            .listener(handler)
+    override fun stop() {
+        started = false
     }
 
-    private fun pollingGuard(ctx: StateContext<AltinnProxyState, AltinnProxyStateMachineEvent>) =
-        if (ctx.message.headers[AltinnProxyStateMachineHeader.LAST_SYNCED_EVENT.name] != null)
-            true
-        else {
-            logger.error("INVALID TRANSITION: Last synced event not set")
-            false
-        }
+    override fun getPhase(): Int {
+        return PHASE_BEFORE_NETTY
+    }
 
-    private fun setupWebhooksGuard(ctx: StateContext<AltinnProxyState, AltinnProxyStateMachineEvent>) =
-        if (environment.activeProfiles.contains("poll")) {
-            logger.info(
-                "Requested transition to: {}. Polling profile selected. Ignoring {} event",
-                ctx.target.id,
-                ctx.event.name
+    override fun isRunning(): Boolean = started
+}
+
+@Suppress("CyclomaticComplexMethod", "LongMethod")
+private fun initializeStateMachine(
+    actions: StateMachineActions,
+    environment: Environment
+): StateMachine<State, AltinnProxyStateMachineEvent, SideEffect> = StateMachine.create {
+    initialState(State.Initial)
+    state<State.Initial> {
+        on<AltinnProxyStateMachineEvent.StartRecovery> {
+            transitionTo(
+                State.StartupRecovery,
+                SideEffect.RecoveryRequested
             )
-            false
-        } else true
-
-    private fun stopPollingGuard(ctx: StateContext<AltinnProxyState, AltinnProxyStateMachineEvent>) =
-        if (ctx.message.headers[AltinnProxyStateMachineHeader.WEBHOOK_CLOUD_EVENT_TIME.name] != null)
-            true
-        else {
-            logger.error("INVALID TRANSITION: End event from webhook not set")
-            false
         }
-
-    private fun initialToSyncTransitions(
-        transitions: StateMachineTransitionConfigurer<AltinnProxyState, AltinnProxyStateMachineEvent>
-    ) =
-        transitions
-            .withExternal()
-            .source(AltinnProxyState.INITIAL).target(AltinnProxyState.STARTUP_RECOVERY)
-            .event(AltinnProxyStateMachineEvent.START_RECOVERY)
-            .and()
-            .withExternal()
-            .source(AltinnProxyState.STARTUP_RECOVERY).target(AltinnProxyState.ERROR)
-            .event(AltinnProxyStateMachineEvent.RECOVERY_FAILED)
-            .and()
-            .withExternal()
-            .source(AltinnProxyState.STARTUP_RECOVERY).target(AltinnProxyState.SYNCHRONIZING)
-            .event(AltinnProxyStateMachineEvent.START_SYNC)
-            .and()
-            .withExternal()
-            .source(AltinnProxyState.SYNCHRONIZING).target(AltinnProxyState.ERROR)
-            .event(AltinnProxyStateMachineEvent.SYNC_FAILED)
-
-    private fun syncToPollingTransition(
-        transitions: StateMachineTransitionConfigurer<AltinnProxyState, AltinnProxyStateMachineEvent>
-    ) =
-        transitions
-            .withExternal()
-            .source(AltinnProxyState.SYNCHRONIZING).target(AltinnProxyState.POLLING)
-            .event(AltinnProxyStateMachineEvent.SYNC_COMPLETE)
-            .guard(::pollingGuard)
-            .and()
-            .withExternal()
-            .source(AltinnProxyState.POLLING).target(AltinnProxyState.ERROR)
-            .event(AltinnProxyStateMachineEvent.POLLING_FAILED)
-
-    private fun pollingToWebhooksTransitions(
-        transitions: StateMachineTransitionConfigurer<AltinnProxyState, AltinnProxyStateMachineEvent>
-    ) =
-        transitions
-            .withExternal()
-            .source(AltinnProxyState.POLLING).target(AltinnProxyState.SETUP_WEBHOOKS)
-            .event(AltinnProxyStateMachineEvent.START_WEBHOOKS)
-            .guard(::setupWebhooksGuard)
-            .and()
-            .withExternal()
-            .source(AltinnProxyState.SETUP_WEBHOOKS).target(AltinnProxyState.ERROR)
-            .event(AltinnProxyStateMachineEvent.POLLING_FAILED)
-            .and()
-            .withExternal()
-            .source(AltinnProxyState.SETUP_WEBHOOKS).target(AltinnProxyState.ERROR)
-            .event(AltinnProxyStateMachineEvent.WEBHOOKS_FAILED)
-            .and()
-            .withExternal()
-            .source(AltinnProxyState.SETUP_WEBHOOKS).target(AltinnProxyState.WEBHOOKS_PENDING_VALIDATION)
-            .event(AltinnProxyStateMachineEvent.WAIT_FOR_VALIDATION_CLOUD_EVENT)
-            .and()
-            .withExternal()
-            .source(AltinnProxyState.WEBHOOKS_PENDING_VALIDATION).target(AltinnProxyState.ERROR)
-            .event(AltinnProxyStateMachineEvent.POLLING_FAILED)
-            .and()
-            .withExternal()
-            .source(AltinnProxyState.WEBHOOKS_PENDING_VALIDATION).target(AltinnProxyState.POLL_AND_WEBHOOKS)
-            .event(AltinnProxyStateMachineEvent.WEBHOOK_INITIALIZED)
-            .and()
-            .withExternal()
-            .source(AltinnProxyState.POLL_AND_WEBHOOKS).target(AltinnProxyState.ERROR)
-            .event(AltinnProxyStateMachineEvent.POLLING_FAILED)
-            .and()
-            .withExternal()
-            .source(AltinnProxyState.POLL_AND_WEBHOOKS).target(AltinnProxyState.STOP_POLLING)
-            .event(AltinnProxyStateMachineEvent.WEBHOOK_READY)
-            .guard(::stopPollingGuard)
-            .and()
-            .withExternal()
-            .source(AltinnProxyState.STOP_POLLING).target(AltinnProxyState.WEBHOOKS)
-            .event(AltinnProxyStateMachineEvent.WEBHOOK_EVENT_REACHED_IN_POLLING)
-
-    private val transitionLogger =
-        object : StateMachineListenerAdapter<AltinnProxyState, AltinnProxyStateMachineEvent>() {
-            override fun stateChanged(
-                from: State<AltinnProxyState, AltinnProxyStateMachineEvent>?,
-                to: State<AltinnProxyState, AltinnProxyStateMachineEvent>
-            ) = from?.id.let {
-                logger.info(
-                    "Changed state from ${it ?: "start"} to ${to.id}"
+    }
+    state<State.StartupRecovery> {
+        on<AltinnProxyStateMachineEvent.RecoveryFailed> {
+            transitionTo(
+                State.StartupRecovery,
+                SideEffect.RecoveryFailed
+            )
+        }
+        on<AltinnProxyStateMachineEvent.RecoverySucceeded> {
+            transitionTo(
+                State.Synchronize,
+                SideEffect.SyncRequested
+            )
+        }
+    }
+    state<State.Synchronize> {
+        on<AltinnProxyStateMachineEvent.SyncFailed> {
+            transitionTo(State.Error, SideEffect.SyncFailed)
+        }
+        on<AltinnProxyStateMachineEvent.SyncSucceeded> {
+            if (!environment.activeProfiles.contains("poll")) {
+                transitionTo(
+                    State.SetupWebhook,
+                    SideEffect.WebhookRequested
                 )
+            } else {
+                transitionTo(State.Poll, SideEffect.PollRequested)
             }
         }
+    }
+    state<State.Poll> {
+        on<AltinnProxyStateMachineEvent.PollingFailed> {
+            transitionTo(State.Error, SideEffect.PollFailed)
+        }
+    }
+    state<State.SetupWebhook> {
+        on<AltinnProxyStateMachineEvent.WebhookFailed> {
+            transitionTo(State.Error, SideEffect.WebbhookFailed)
+        }
+        on<AltinnProxyStateMachineEvent.WebhookInitialized> {
+            transitionTo(State.PendingValidation)
+        }
+    }
+    state<State.PendingValidation> {
+        on<AltinnProxyStateMachineEvent.WebhookValidated> {
+            transitionTo(State.PollAndWebhook)
+        }
+    }
+    state<State.PollAndWebhook> {
+        on<AltinnProxyStateMachineEvent.WebhookReady> {
+            transitionTo(
+                State.Webhook,
+                SideEffect.StopPollRequested
+            )
+        }
+    }
+    state<State.Webhook> {}
+    // Transition to Error state from all states
+    // when recieving Event.CriticalError
+    State::class.sealedSubclasses
+        .mapNotNull { it.objectInstance }
+        .forEach { s ->
+            state(s) {
+                on<AltinnProxyStateMachineEvent.CriticalError> {
+                    transitionTo(
+                        State.Error,
+                        SideEffect.CriticalError
+                    )
+                }
+            }
+        }
+
+    onTransition {
+        val transition = it as? StateMachine.Transition.Valid
+        val logger = LoggerFactory.getLogger(javaClass)
+        val sideEffect = transition?.sideEffect ?: return@onTransition
+
+        logger.info(it.fromState.toString())
+        logger.info(it.event.toString())
+
+
+        when (sideEffect) {
+            SideEffect.RecoveryRequested -> actions.onRecoveryRequested()
+            SideEffect.RecoveryFailed -> actions.onCriticalError(it.fromState)
+            SideEffect.SyncRequested -> actions.onSyncRequested()
+            SideEffect.SyncFailed -> actions.onCriticalError(it.fromState)
+            SideEffect.PollRequested -> {
+                val altinnProxyStateMachineEvent = it.event as AltinnProxyStateMachineEvent.SyncSucceeded
+                actions.onPollRequestedEvent(altinnProxyStateMachineEvent.lastSyncedEvent)
+            }
+
+            SideEffect.PollFailed -> {
+                val altinnProxyStateMachineEvent = it.event as AltinnProxyStateMachineEvent.PollingFailed
+                actions.onPollingFailed(altinnProxyStateMachineEvent.failedEvent)
+            }
+
+            SideEffect.WebhookRequested -> {
+                val altinnProxyStateMachineEvent = it.event as AltinnProxyStateMachineEvent.SyncSucceeded
+                actions.onSetupWebhooksRequested(altinnProxyStateMachineEvent.lastSyncedEvent)
+            }
+
+            SideEffect.WebbhookFailed -> actions.onCriticalError(it.fromState)
+            SideEffect.StopPollRequested -> {
+                val altinnProxyStateMachineEvent = it.event as AltinnProxyStateMachineEvent.WebhookReady
+                actions.onStopPollingRequested(altinnProxyStateMachineEvent.cloudEventTime)
+            }
+
+            SideEffect.CriticalError -> actions.onCriticalError(it.fromState)
+        }
+    }
 }
+

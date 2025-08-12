@@ -5,6 +5,7 @@ import kotlinx.coroutines.test.runTest
 import no.kartverket.altinn3.client.BrokerClient
 import no.kartverket.altinn3.events.server.Helpers.createCloudEvent
 import no.kartverket.altinn3.events.server.Helpers.createFileOverviewFromEvent
+import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
 import no.kartverket.altinn3.events.server.service.AltinnTransitService
@@ -26,7 +27,10 @@ class CloudEventHandlerTest {
     private val transactionTemplate = mockk<TransactionTemplate>(relaxed = true)
     private val retryTemplate = RetryTemplate.builder().maxAttempts(1).build()
     private val altinnTransitService = mockk<AltinnTransitService>(relaxed = true)
-    private val cloudEventHandler = CloudEventHandler(broker, altinnTransitService, retryTemplate)
+    private val config = mockk<AltinnServerConfig>(relaxed = true) {
+        every { recipientId } returns "123456789"
+    }
+    private val cloudEventHandler = CloudEventHandler(broker, altinnTransitService, retryTemplate, config)
 
     @AfterEach
     fun tearDown() {

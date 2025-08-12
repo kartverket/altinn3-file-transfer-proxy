@@ -6,10 +6,13 @@ import kotlinx.coroutines.launch
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.configuration.Scopes
 import org.slf4j.LoggerFactory
+import org.springframework.boot.SpringApplication
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationListener
 import org.springframework.context.support.beans
+import kotlin.system.exitProcess
 import kotlin.time.Duration
 
 val transitConfig = beans {
@@ -21,7 +24,8 @@ val transitConfig = beans {
 class TransitPoller(
     private val config: AltinnServerConfig,
     private val altinnTransitService: AltinnTransitService,
-    private val handler: AltinnService
+    private val handler: AltinnService,
+    private val applicationContext: ApplicationContext
 ) : ApplicationListener<ApplicationReadyEvent> {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -51,8 +55,12 @@ class TransitPoller(
 
     override fun onApplicationEvent(event: ApplicationReadyEvent) {
         if (config.pollTransitEnabled) {
-            Scopes.transitScope.launch {
-                poll()
+            Scopes.altinnProxyScope.launch {
+                runCatching {
+                    poll()
+                }.onFailure {
+                    exitProcess(SpringApplication.exit(applicationContext, { 1 }))
+                }
             }
         } else {
             logger.info("Started without polling for outing files")

@@ -33,7 +33,7 @@ class AltinnService(
             sender = "$ALTINN_ORG_NUMBER_PREFIX${config.recipientId}",
             recipients = listOf(innsender),
             fileName = requireNotNull(fileOverview.fileName) { "File name must be specified" },
-            sendersFileTransferReference = fileOverview.fileTransferId.toString(),
+            sendersFileTransferReference = fileOverview.sendersReference.toString(),
             propertyList = propertyList
         )
 

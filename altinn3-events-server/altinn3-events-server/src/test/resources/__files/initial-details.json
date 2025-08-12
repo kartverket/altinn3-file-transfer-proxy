@@ -4,7 +4,12 @@
   "sendersFileTransferReference": "sendersFileTransferReference",
   "created": "{{now}}",
   "fileTransferStatus": "Published",
-  "sender": "sender",
+  "sender": "123456789",
+  "recipients": [
+    {
+      "recipient": "123456789"
+    }
+  ],
   "fileTransferStatusHistory": [
     {
       "fileTransferStatus": "Published"

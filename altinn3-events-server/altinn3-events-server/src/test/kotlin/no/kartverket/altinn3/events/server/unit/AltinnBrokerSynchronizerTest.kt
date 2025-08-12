@@ -4,8 +4,9 @@ import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import no.kartverket.altinn3.events.server.Helpers.createCloudEvent
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
-import no.kartverket.altinn3.events.server.domain.*
-import no.kartverket.altinn3.events.server.domain.state.AltinnProxyState
+import no.kartverket.altinn3.events.server.domain.AltinnEventType
+import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
+import no.kartverket.altinn3.events.server.domain.state.State
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
 import no.kartverket.altinn3.events.server.service.AltinnBrokerSynchronizer
 import no.kartverket.altinn3.events.server.service.EventLoader
@@ -53,18 +54,18 @@ class AltinnBrokerSynchronizerTest {
         val failedEvent1 = AltinnFailedEvent(
             UUID.fromString(event1.id),
             UUID.randomUUID(),
-            AltinnProxyState.POLL_AND_WEBHOOKS.name
+            State.PollAndWebhook::class.simpleName
         )
         val failedEvent2 = AltinnFailedEvent(
             UUID.fromString(event2.id),
             UUID.randomUUID(),
-            AltinnProxyState.POLL_AND_WEBHOOKS.name
+            State.PollAndWebhook::class.simpleName
         )
         every { failedEventRepository.findAll() } returns listOf(failedEvent1, failedEvent2)
         every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(setOf(event1, event2))
         coEvery { cloudEventHandler.handle(any()) } just Runs
         synchronizer.recoverFailedEvents()
-        val eventSlot = slot<AltinnProxyApplicationEvent>()
+        val eventSlot = slot<AltinnProxyStateMachineEvent>()
         verify(exactly = 1) { publisher.publishEvent(capture(eventSlot)) }
         verify { failedEventRepository.deleteById(any()) }
         verify(exactly = 1) { failedEventRepository.findAll() }
@@ -84,9 +85,9 @@ class AltinnBrokerSynchronizerTest {
         coVerify(exactly = 1) { cloudEventHandler.tryHandle<Unit>(event1, any(), any()) }
         coVerify(exactly = 1) { cloudEventHandler.tryHandle<Unit>(event2, any(), any()) }
 
-        val eventSlot = slot<AltinnSyncFinishedEvent>()
+        val eventSlot = slot<AltinnProxyStateMachineEvent.SyncSucceeded>()
         verify { publisher.publishEvent(capture(eventSlot)) }
-        assertEquals(event2.id, eventSlot.captured.latestEventId)
+        assertEquals(event2.id, eventSlot.captured.lastSyncedEvent)
     }
 
     @Test
@@ -113,11 +114,9 @@ class AltinnBrokerSynchronizerTest {
             coVerify(exactly = 1) { cloudEventHandler.tryHandle<Unit>(cloudEvent1, any(), any()) }
             coVerify(exactly = 0) { cloudEventHandler.tryHandle<Unit>(cloudEvent2, any(), any()) }
 
-            val pollingStartedEvent = slot<PollingStartedEvent>()
-            val pollingEndEvent = slot<PollingReachedEndEvent>()
+            val pollingEndEvent = slot<AltinnProxyStateMachineEvent.PollingSucceeded>()
 
-            verifySequence {
-                publisher.publishEvent(capture(pollingStartedEvent))
+            verify {
                 publisher.publishEvent(capture(pollingEndEvent))
             }
         }
