@@ -48,4 +48,5 @@ bin/
 ### Mac OS ###
 .DS_Store
 
-/altinn3-events-server/src/main/resources/application.yaml
+application.yaml
+application.yml
