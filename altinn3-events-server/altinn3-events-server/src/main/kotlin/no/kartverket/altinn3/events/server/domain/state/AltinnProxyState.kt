@@ -7,8 +7,9 @@ sealed class State {
     object Synchronize : State()
     object Poll : State()
     object SetupWebhook : State()
-    object PendingValidation : State()
     object PollAndWebhook : State()
     object Webhook : State()
     object Stop : State()
+
+    override fun toString() = this::class.java.simpleName
 }

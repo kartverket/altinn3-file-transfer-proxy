@@ -122,13 +122,11 @@ private fun initializeStateMachine(
         on<AltinnProxyStateMachineEvent.WebhookFailed> {
             transitionTo(State.Error, SideEffect.WebbhookFailed)
         }
-        on<AltinnProxyStateMachineEvent.WebhookInitialized> {
-            transitionTo(State.PendingValidation)
-        }
-    }
-    state<State.PendingValidation> {
         on<AltinnProxyStateMachineEvent.WebhookValidated> {
             transitionTo(State.PollAndWebhook)
+        }
+        on<AltinnProxyStateMachineEvent.PollingFailed> {
+            transitionTo(State.Error, SideEffect.PollFailed)
         }
     }
     state<State.PollAndWebhook> {
@@ -137,6 +135,9 @@ private fun initializeStateMachine(
                 State.Webhook,
                 SideEffect.StopPollRequested
             )
+        }
+        on<AltinnProxyStateMachineEvent.PollingFailed> {
+            transitionTo(State.Error, SideEffect.PollFailed)
         }
     }
     state<State.Webhook> {}
@@ -156,12 +157,14 @@ private fun initializeStateMachine(
         }
 
     onTransition {
-        val transition = it as? StateMachine.Transition.Valid
+        val transition = it as? StateMachine.Transition.Valid ?: return@onTransition
         val logger = LoggerFactory.getLogger(javaClass)
-        val sideEffect = transition?.sideEffect ?: return@onTransition
-
-        logger.info(it.fromState.toString())
-        logger.info(it.event.toString())
+        logger.info(
+            "Transition from state: ${it.fromState.toString().uppercase()} to ${
+                it.toState.toString().uppercase()
+            } on event: ${it.event.toString().uppercase()}"
+        )
+        val sideEffect = transition.sideEffect ?: return@onTransition
 
 
         when (sideEffect) {

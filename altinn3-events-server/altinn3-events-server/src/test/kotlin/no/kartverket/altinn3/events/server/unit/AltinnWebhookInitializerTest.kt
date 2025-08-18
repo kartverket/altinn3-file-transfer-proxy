@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.retry.support.RetryTemplate
 import java.net.URI
+import kotlin.time.Duration
 
 class AltinnWebhookInitializerTest {
     private val eventsClient = mockk<EventsClient>()
@@ -21,7 +22,7 @@ class AltinnWebhookInitializerTest {
     private val subscriptionApi = mockk<SubscriptionApi>()
 
     private val initializer = spyk(
-        AltinnWebhookInitializer(eventsClient, altinnWebhooks, applicationEventPublisher, retryTemplate),
+        AltinnWebhookInitializer(eventsClient, altinnWebhooks, retryTemplate),
         recordPrivateCalls = true
     )
 
@@ -64,7 +65,7 @@ class AltinnWebhookInitializerTest {
             )
         } returns sub2
 
-        initializer.setupWebhooks()
+        initializer.setupWebhooks(Duration.parse("0s"))
 
         coVerify(exactly = 1) {
             subscriptionApi.subscriptionsPost(
@@ -105,7 +106,7 @@ class AltinnWebhookInitializerTest {
 
         coEvery { subscriptionApi.subscriptionsPost(any()) } returnsMany listOf(sub1, sub2)
 
-        initializer.setupWebhooks()
+        initializer.setupWebhooks(Duration.parse("0s"))
 
         coEvery { subscriptionApi.subscriptionsIdDelete(sub1.id!!) } returns Unit
         coEvery { subscriptionApi.subscriptionsIdDelete(sub2.id!!) } returns Unit

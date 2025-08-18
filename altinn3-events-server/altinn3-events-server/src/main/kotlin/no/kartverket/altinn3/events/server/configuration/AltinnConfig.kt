@@ -198,6 +198,7 @@ class AltinnPropertiesConfiguration {
 
 @ConfigurationProperties("altinn")
 data class AltinnServerConfig(
+    val webhookSubscriptionDelay: String = "20s",
     val pollTransitInterval: String = "15s",
     var pollTransitEnabled: Boolean = true,
     val recipientId: String = "",

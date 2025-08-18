@@ -1,6 +1,7 @@
 package no.kartverket.altinn3.events.server.handler
 
 import kotlinx.coroutines.launch
+import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.configuration.Scopes
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
 import no.kartverket.altinn3.events.server.domain.state.State
@@ -17,6 +18,7 @@ import java.time.OffsetDateTime
 import java.util.*
 import java.util.function.Supplier
 import kotlin.system.exitProcess
+import kotlin.time.Duration
 
 class StateMachineActions(
     private val startEventSupplier: Supplier<String>,
@@ -25,6 +27,7 @@ class StateMachineActions(
     private val altinnFailedEventRepository: AltinnFailedEventRepository,
     private val applicationEventPublisher: ApplicationEventPublisher,
     private val applicationContext: ApplicationContext,
+    private val altinnServerConfig: AltinnServerConfig
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -46,7 +49,6 @@ class StateMachineActions(
             }
         }
     }
-
 
     fun onSyncRequested() {
         Scopes.altinnProxyScope.launch {
@@ -119,7 +121,9 @@ class StateMachineActions(
             }
             launch {
                 runCatching {
-                    altinnWebhookInitializer.setupWebhooks()
+                    val delay = Duration.parse(altinnServerConfig.webhookSubscriptionDelay)
+
+                    altinnWebhookInitializer.setupWebhooks(delay)
                 }.onFailure {
                     logger.error("Setup webhooks failed: {}", it.message)
                     logger.error(it.stackTraceToString())

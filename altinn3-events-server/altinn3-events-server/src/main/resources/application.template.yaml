@@ -8,6 +8,7 @@ altinn:
   poll-altinn-interval: 10s
   poll-transit-enabled: true
   poll-transit-interval: 10s
+  webhook-subscription-delay: 20s # Configure a delay before setting up subscriptions
   recipient-id:
   resource-id:
   webhook-external-url: ""

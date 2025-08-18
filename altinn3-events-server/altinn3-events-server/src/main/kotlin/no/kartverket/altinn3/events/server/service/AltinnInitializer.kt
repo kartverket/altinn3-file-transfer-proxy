@@ -222,7 +222,6 @@ class AltinnBrokerSynchronizer(
 class AltinnWebhookInitializer(
     private val eventsClient: EventsClient,
     private val altinnWebhooks: AltinnWebhooks,
-    private val applicationEventPublisher: ApplicationEventPublisher,
     private val retryTemplate: RetryTemplate,
 ) : DisposableBean {
     private lateinit var subscriptions: Set<Subscription>
@@ -260,9 +259,9 @@ class AltinnWebhookInitializer(
         }
     }
 
-    suspend fun setupWebhooks() = coroutineScope {
+    suspend fun setupWebhooks(delay: Duration) = coroutineScope {
+        delay(delay)
         subscriptions = eventsClient.subscription.setUpSubscriptions().toCollection(hashSetOf())
         logger.info("setup subscriptions: completed")
-        applicationEventPublisher.publishEvent(AltinnProxyStateMachineEvent.WebhookInitialized())
     }
 }
