@@ -29,16 +29,11 @@ import no.kartverket.altinn3.persistence.AltinnFilOverviewRepository
 import no.kartverket.altinn3.persistence.AltinnFilRepository
 import no.kartverket.altinn3.persistence.configuration.TransitRepositoryConfig
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.autoconfigure.data.jdbc.JdbcRepositoriesAutoConfiguration
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
-import org.springframework.boot.test.autoconfigure.data.jdbc.DataJdbcTest
-import org.springframework.boot.test.autoconfigure.jdbc.TestDatabaseAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContextInitializer
@@ -108,6 +103,9 @@ class WireMockInitializer : ApplicationContextInitializer<ConfigurableApplicatio
     ]
 )
 class CloudEventIntegrationTest {
+    @Autowired
+    private lateinit var failedEventRepository: AltinnFailedEventRepository
+
     @Autowired
     private lateinit var status: WebhookAvailabilityStatus
 
@@ -207,43 +205,23 @@ class CloudEventIntegrationTest {
             }
         }
     }
-}
-
-// Integrasjon mot database uten full applikasjonskontekst.
-// Ønsker også å opprette repoer manuelt
-@DataJdbcTest(
-    excludeAutoConfiguration = [
-        TestDatabaseAutoConfiguration::class,
-        DataSourceAutoConfiguration::class,
-        JdbcRepositoriesAutoConfiguration::class,
-    ]
-)
-@Import(PostgresTestContainersConfiguration::class, TransitRepositoryConfig::class)
-class RecoveryIntegrationTest {
-    @Autowired
-    private lateinit var failedEventRepository: AltinnFailedEventRepository
-    private val altinnConfig: AltinnServerConfig = mockk(relaxed = true)
-    private val eventLoader: EventLoader = mockk(relaxed = true)
-    private val applicationEventPublisher: ApplicationEventPublisher = mockk(relaxed = true)
-    private val cloudEventHandler: CloudEventHandler = mockk(relaxed = true)
-
-    val brokerSynchronizer by lazy {
-        AltinnBrokerSynchronizer(
-            eventLoader,
-            cloudEventHandler,
-            applicationEventPublisher,
-            altinnConfig,
-            failedEventRepository
-        )
-    }
-
-    @AfterEach
-    fun cleanup() {
-        failedEventRepository.deleteAll()
-    }
 
     @Test
     fun `Should recover previously failed events`() = runTest {
+        val altinnConfig: AltinnServerConfig = mockk(relaxed = true)
+        val eventLoader: EventLoader = mockk(relaxed = true)
+        val applicationEventPublisher: ApplicationEventPublisher = mockk(relaxed = true)
+        val cloudEventHandler: CloudEventHandler = mockk(relaxed = true)
+        val brokerSynchronizer by lazy {
+            AltinnBrokerSynchronizer(
+                eventLoader,
+                cloudEventHandler,
+                applicationEventPublisher,
+                altinnConfig,
+                failedEventRepository
+            )
+        }
+
         val event1 = createCloudEvent(AltinnEventType.PUBLISHED)
         val event2 = createCloudEvent(AltinnEventType.PUBLISHED)
         val failedEvents = listOf(
@@ -258,6 +236,7 @@ class RecoveryIntegrationTest {
                 previousEventId = UUID.fromString(event1.id),
             )
         )
+        failedEventRepository.deleteAll()
         failedEventRepository.saveAll(failedEvents)
 
         assertThat(failedEventRepository.findAll()).hasSize(2)

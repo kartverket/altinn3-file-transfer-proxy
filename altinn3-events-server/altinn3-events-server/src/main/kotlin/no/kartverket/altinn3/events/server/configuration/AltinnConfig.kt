@@ -200,8 +200,8 @@ class AltinnPropertiesConfiguration {
 data class AltinnServerConfig(
     val pollTransitInterval: String = "15s",
     var pollTransitEnabled: Boolean = true,
-    val recipientId: String,
-    val resourceId: String,
+    val recipientId: String = "",
+    val resourceId: String = "",
     val persistCloudEvent: Boolean = true,
     val persistAltinnFile: Boolean = true,
     val sendResponse: Boolean = true,

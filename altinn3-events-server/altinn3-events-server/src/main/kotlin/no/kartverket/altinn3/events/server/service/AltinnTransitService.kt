@@ -83,10 +83,9 @@ open class AltinnTransitService(
         }
     }
 
-    fun startTransfer(fileOverview: FileOverview, fileBytes: ByteArray, event: CloudEvent, onSuccess: () -> Unit) {
+    fun startTransfer(fileOverview: FileOverview, fileBytes: ByteArray, onSuccess: () -> Unit) {
         transactionTemplate.execute {
             saveAltinnFil(fileOverview, fileBytes)
-            saveAltinnEvent(event.toAltinnEventEntity())
             onSuccess()
         }
     }

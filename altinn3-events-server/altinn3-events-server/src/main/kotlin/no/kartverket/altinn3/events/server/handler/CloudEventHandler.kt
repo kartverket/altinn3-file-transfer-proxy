@@ -102,7 +102,7 @@ class CloudEventHandler(
             broker.downloadFileBytes(resourceInstance)
         }
 
-        altinnTransitService.startTransfer(fileMeta, fileBytes, event) {
+        altinnTransitService.startTransfer(fileMeta, fileBytes) {
             retryTemplate.execute<Any, IllegalStateException> {
                 broker.confirmDownload(resourceInstance)
             }

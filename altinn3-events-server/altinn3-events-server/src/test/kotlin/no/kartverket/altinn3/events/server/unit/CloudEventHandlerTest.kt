@@ -144,7 +144,7 @@ class CloudEventHandlerTest {
         val fileOverview = createFileOverviewFromEvent(event = event, status = FileStatus.Published)
 
         every {
-            altinnTransitService.startTransfer(any(), any(), any(), captureLambda<() -> Unit>())
+            altinnTransitService.startTransfer(any(), any(), captureLambda<() -> Unit>())
         } answers {
             lambda<() -> Unit>().invoke()
         }
@@ -155,7 +155,7 @@ class CloudEventHandlerTest {
 
         cloudEventHandler.handle(event)
 
-        verify(exactly = 1) { altinnTransitService.startTransfer(any(), any(), any(), any()) }
+        verify(exactly = 1) { altinnTransitService.startTransfer(any(), any(), any()) }
         verify(exactly = 1) { broker.confirmDownload(any()) }
     }
 
@@ -167,6 +167,6 @@ class CloudEventHandlerTest {
 
         cloudEventHandler.handle(event)
 
-        verify(exactly = 0) { altinnTransitService.startTransfer(any(), any(), any(), any()) }
+        verify(exactly = 0) { altinnTransitService.startTransfer(any(), any(), any()) }
     }
 }
