@@ -29,6 +29,7 @@ private fun FileOverview.toAltinnFilOverview() = AltinnFilOverview(
     sendersReference = this.sendersFileTransferReference,
     sender = this.sender,
     created = this.created?.toLocalDateTime(),
+    received = LocalDateTime.now(),
     fileTransferId = this.fileTransferId,
     resourceId = this.resourceId,
     transitStatus = TransitStatus.NEW,
