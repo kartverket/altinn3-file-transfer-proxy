@@ -84,6 +84,10 @@ open class AltinnTransitService(
         }
     }
 
+    fun findNewestEvent(): String? {
+        return altinnEventRepository.findFirstByOrderByTimeDesc()?.altinnId?.toString()
+    }
+
     fun startTransfer(fileOverview: FileOverview, fileBytes: ByteArray, onSuccess: () -> Unit) {
         transactionTemplate.execute {
             saveAltinnFil(fileOverview, fileBytes)

@@ -252,6 +252,10 @@ class AltinnWebhookInitializer(
     }
 
     override fun destroy() = runBlocking {
+        deleteSubscriptions()
+    }
+
+    fun deleteSubscriptions() {
         if (::subscriptions.isInitialized) runCatching {
             eventsClient.subscription.deleteAll()
         }.onFailure {

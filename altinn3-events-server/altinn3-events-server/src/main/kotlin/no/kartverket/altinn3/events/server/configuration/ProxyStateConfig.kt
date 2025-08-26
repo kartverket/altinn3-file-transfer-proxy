@@ -41,6 +41,8 @@ sealed class SideEffect {
     object WebbhookFailed : SideEffect()
     object StopPollRequested : SideEffect()
     object CriticalError : SideEffect()
+    object ServiceUnavailable : SideEffect()
+    object ServiceAvailableAgainAfterUnavailability : SideEffect()
 }
 
 private const val PHASE_BEFORE_NETTY = DEFAULT_PHASE - 2056
@@ -117,6 +119,9 @@ private fun initializeStateMachine(
         on<AltinnProxyStateMachineEvent.PollingFailed> {
             transitionTo(State.Error, SideEffect.PollFailed)
         }
+        on<AltinnProxyStateMachineEvent.ServiceAvailable> {
+            transitionTo(State.SetupWebhook, SideEffect.WebhookRequested)
+        }
     }
     state<State.SetupWebhook> {
         on<AltinnProxyStateMachineEvent.WebhookFailed> {
@@ -139,8 +144,21 @@ private fun initializeStateMachine(
         on<AltinnProxyStateMachineEvent.PollingFailed> {
             transitionTo(State.Error, SideEffect.PollFailed)
         }
+        on<AltinnProxyStateMachineEvent.ServiceUnavailable> {
+            transitionTo(
+                State.Poll,
+                SideEffect.ServiceUnavailable
+            )
+        }
     }
-    state<State.Webhook> {}
+    state<State.Webhook> {
+        on<AltinnProxyStateMachineEvent.ServiceUnavailable> {
+            transitionTo(
+                State.Poll,
+                SideEffect.ServiceUnavailable
+            )
+        }
+    }
     // Transition to Error state from all states
     // when recieving Event.CriticalError
     State::class.sealedSubclasses
@@ -172,6 +190,15 @@ private fun initializeStateMachine(
             SideEffect.RecoveryFailed -> actions.onCriticalError(it.fromState)
             SideEffect.SyncRequested -> actions.onSyncRequested()
             SideEffect.SyncFailed -> actions.onCriticalError(it.fromState)
+            SideEffect.ServiceUnavailable -> {
+                val altinnProxyStateMachineEvent = it.event as AltinnProxyStateMachineEvent.ServiceUnavailable
+                actions.onPollRequestedEvent(altinnProxyStateMachineEvent.lastSyncedEvent)
+            }
+
+            SideEffect.ServiceAvailableAgainAfterUnavailability -> {
+                actions.onServiceAvailableAfterUnavailability()
+            }
+
             SideEffect.PollRequested -> {
                 val altinnProxyStateMachineEvent = it.event as AltinnProxyStateMachineEvent.SyncSucceeded
                 actions.onPollRequestedEvent(altinnProxyStateMachineEvent.lastSyncedEvent)

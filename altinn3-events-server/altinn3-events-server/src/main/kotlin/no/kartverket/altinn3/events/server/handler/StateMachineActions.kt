@@ -50,6 +50,20 @@ class StateMachineActions(
         }
     }
 
+    fun onServiceAvailableAfterUnavailability() {
+        Scopes.altinnProxyScope.launch {
+            runCatching {
+                setupWebhooks()
+            }.onFailure {
+                logger.error("")
+                logger.error(it.message)
+                logger.error(it.stackTraceToString())
+                applicationEventPublisher.publishEvent(AltinnProxyStateMachineEvent.RecoveryFailed())
+            }
+        }
+    }
+
+
     fun onSyncRequested() {
         Scopes.altinnProxyScope.launch {
             runCatching {
@@ -66,7 +80,13 @@ class StateMachineActions(
         lastSyncedEvent: String,
     ) {
         Scopes.altinnProxyScope.launch {
-            startPolling(lastSyncedEvent)
+            runCatching {
+                startPolling(lastSyncedEvent)
+            }.onFailure {
+                logger.error("")
+                logger.error(it.message)
+                logger.error(it.stackTraceToString())
+            }
         }
     }
 
@@ -98,6 +118,7 @@ class StateMachineActions(
         }
     }
 
+
     fun onPollingFailed(failedEvent: AltinnFailedEvent) = persistFailedEvent(failedEvent)
     private fun persistFailedEvent(failedEvent: AltinnFailedEvent) {
         logger.error(
@@ -120,20 +141,24 @@ class StateMachineActions(
                 startPolling(lastSyncedEvent)
             }
             launch {
-                runCatching {
-                    val delay = Duration.parse(altinnServerConfig.webhookSubscriptionDelay)
-
-                    altinnWebhookInitializer.setupWebhooks(delay)
-                }.onFailure {
-                    logger.error("Setup webhooks failed: {}", it.message)
-                    logger.error(it.stackTraceToString())
-                    applicationEventPublisher.publishEvent(AltinnProxyStateMachineEvent.WebhookFailed())
-                }
+                altinnWebhookInitializer.deleteSubscriptions()
+                setupWebhooks()
             }
         }
     }
 
     fun onStopPollingRequested(cloudEventTime: OffsetDateTime) {
         altinnSynchronizer.eventRecievedInWebhooksCreatedAt = cloudEventTime
+    }
+
+    private suspend fun setupWebhooks() {
+        runCatching {
+            val delay = Duration.parse(altinnServerConfig.webhookSubscriptionDelay)
+            altinnWebhookInitializer.setupWebhooks(delay)
+        }.onFailure {
+            logger.error("Setup webhooks failed: {}", it.message)
+            logger.error(it.stackTraceToString())
+            applicationEventPublisher.publishEvent(AltinnProxyStateMachineEvent.WebhookFailed())
+        }
     }
 }

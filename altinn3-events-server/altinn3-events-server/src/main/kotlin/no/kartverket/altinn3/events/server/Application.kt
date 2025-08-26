@@ -14,9 +14,11 @@ import org.springframework.context.event.EventListenerMethodProcessor
 import org.springframework.context.support.GenericApplicationContext
 import org.springframework.context.support.beans
 import org.springframework.context.support.registerBean
+import org.springframework.scheduling.annotation.EnableScheduling
 
 @ImportRuntimeHints(NativeHints::class)
 @SpringBootApplication
+@EnableScheduling
 @Import(TransitRepositoryConfig::class)
 class Application : SpringApplication()
 
@@ -38,5 +40,6 @@ class ApplicationBeansInitializer : ApplicationContextInitializer<GenericApplica
         altinnConfig.initialize(applicationContext)
         stateConfig.initialize(applicationContext)
         transitConfig.initialize(applicationContext)
+        healthCheckConfig.initialize(applicationContext)
     }
 }
