@@ -43,11 +43,11 @@ class HealthCheckServiceTest {
         healthCheck = HealthCheckService(
             properties,
             altinnServerConfig,
-            applicationEventPublisher,
             stateMachine,
             altinnTransitService,
             restClient
         )
+        healthCheck.setApplicationEventPublisher(applicationEventPublisher)
     }
 
     @Test
@@ -64,7 +64,7 @@ class HealthCheckServiceTest {
         healthCheck.checkHealth()
 
         verify {
-            applicationEventPublisher.publishEvent(
+            healthCheck.publisher.publishEvent(
                 ofType(AltinnProxyStateMachineEvent.ServiceAvailable::class)
             )
         }
