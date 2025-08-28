@@ -1,10 +1,10 @@
 [versions]
-kotlin = "2.2.0"
+kotlin = "2.2.10"
 coroutines = "1.10.2"
-spring-boot = "3.5.4"
+spring-boot = "3.5.5"
 jackson = "2.19.2"
 testcontainers = "1.21.3"
-flyway = "11.11.0"
+flyway = "11.11.2"
 mockk = "1.14.5"
 
 [libraries]
@@ -17,7 +17,7 @@ jackson-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr
 spring-boot-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux", version.ref = "spring-boot" }
 spring-boot-data-jdbc = { module = "org.springframework.boot:spring-boot-starter-data-jdbc", version.ref = "spring-boot" }
 spring-boot-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
-spring-security-oauth2-jose = { module = "org.springframework.security:spring-security-oauth2-jose", version = "6.5.2" }
+spring-security-oauth2-jose = { module = "org.springframework.security:spring-security-oauth2-jose", version = "6.5.3" }
 spring-retry = { module = "org.springframework.retry:spring-retry", version = "2.0.12" }
 postgres = { module = "org.postgresql:postgresql", version = "42.7.7" }
 oracle = { module = "com.oracle.database.jdbc:ojdbc11", version = "23.9.0.25.07" }
@@ -41,8 +41,8 @@ testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.re
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 mockk-jvm = { module = "io.mockk:mockk-jvm", version.ref = "mockk" }
 spring-mockk = { module = "com.ninja-squad:springmockk", version = "4.0.2" }
-wiremock = { module = "org.wiremock.integrations:wiremock-spring-boot", version = "3.10.0" }
-spring-test-client = { module = "io.rest-assured:spring-web-test-client", version = "5.5.5" }
+wiremock = { module = "org.wiremock.integrations:wiremock-spring-boot", version = "3.10.6" }
+spring-test-client = { module = "io.rest-assured:spring-web-test-client", version = "5.5.6" }
 jdom-xml = { module = "org.jdom:jdom2", version = "2.0.6.1" }
 
 [bundles]
