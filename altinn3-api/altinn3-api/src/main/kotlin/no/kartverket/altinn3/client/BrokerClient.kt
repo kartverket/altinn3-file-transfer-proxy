@@ -40,5 +40,8 @@ class BrokerClient(
 
     fun initializeFileTransfer(fileTransferInitialize: FileTransferInitialize) =
         file.brokerApiV1FiletransferPost(fileTransferInitialize)
+
+    fun healthCheckViaFileTranser(resourceId: String) =
+        file.brokerApiV1FiletransferGetWithHttpInfo(resourceId = resourceId)
 }
 
