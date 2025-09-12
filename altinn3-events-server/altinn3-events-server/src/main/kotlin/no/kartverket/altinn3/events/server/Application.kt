@@ -41,5 +41,6 @@ class ApplicationBeansInitializer : ApplicationContextInitializer<GenericApplica
         stateConfig.initialize(applicationContext)
         transitConfig.initialize(applicationContext)
         healthCheckConfig.initialize(applicationContext)
+        altinnHealthCheckConfig.initialize(applicationContext)
     }
 }

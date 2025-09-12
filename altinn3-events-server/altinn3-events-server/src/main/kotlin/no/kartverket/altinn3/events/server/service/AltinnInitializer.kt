@@ -3,6 +3,7 @@ package no.kartverket.altinn3.events.server.service
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import no.kartverket.altinn3.client.BrokerClient
 import no.kartverket.altinn3.client.EventsClient
 import no.kartverket.altinn3.events.apis.EventsApi
 import no.kartverket.altinn3.events.apis.SubscriptionApi
@@ -26,41 +27,74 @@ import kotlin.time.Duration
 
 class EventLoader(
     private val eventsClient: EventsClient,
+    private val brokerClient: BrokerClient,
     private val webhooks: AltinnWebhooks,
     private val retryTemplate: RetryTemplate,
 ) {
-    fun fetchAndMapEventsByResource(recipientOrgNr: String, afterSupplier: (resource: String) -> String = { "0" }) =
+    fun fetchAndMapEventsByResource(
+        recipientOrgNr: String,
+        afterSupplier: (resource: String) -> String = { "0" }
+    ): List<CloudEvent> =
         webhooks
             .groupBy({ it.resourceFilter!! }) { it.typeFilter }
-            .map { (resource, type) ->
-                val typesMaybe =
-                    if (type.any { it.isNullOrBlank() }) null
-                    else type.filterNotNull().filter { it.isNotBlank() }
-                eventsClient.events.loadResourceEventType(
-                    resource,
-                    typesMaybe,
-                    subject = "/organisation/${recipientOrgNr}",
+            .flatMap { (resource, typeFilters) ->
+                fetchEventsForResource(
+                    resource = resource,
+                    recipientOrgNr = recipientOrgNr,
+                    typeFilters = typeFilters,
                     afterSupplier = afterSupplier
                 )
             }
 
+    private fun fetchEventsForResource(
+        resource: String,
+        recipientOrgNr: String,
+        typeFilters: List<String?>,
+        afterSupplier: (resource: String) -> String
+    ): List<CloudEvent> {
+        val filteredTypes = typeFilters
+            .takeUnless { it.any { type -> type.isNullOrBlank() } }
+            ?.filterNotNull()
+            ?.filter { it.isNotBlank() }
+
+        return eventsClient.events.loadResourceEventType(
+            resource = resource,
+            type = filteredTypes,
+            subject = "/organisation/$recipientOrgNr",
+            afterSupplier = afterSupplier
+        )
+    }
+
     fun EventsApi.loadResourceEventType(
         resource: String,
-        type: List<String>?,
+        type: List<String>? = null,
         pageSize: Int = 50,
         subject: String,
         afterSupplier: (resource: String) -> String = { "0" }
-    ) = buildSet {
+    ): List<CloudEvent> {
         var after: String = afterSupplier(resource)
-        var page: List<CloudEvent>
+        val collectedEvents = mutableListOf<CloudEvent>()
+
         do {
-            page = retryTemplate.execute<List<CloudEvent>, IllegalStateException> {
-                eventsGet(resource, after, size = pageSize, type = type, subject = subject)
+            val page = retryTemplate.execute<List<CloudEvent>, IllegalStateException> {
+                eventsGet(
+                    resource,
+                    after,
+                    size = pageSize,
+                    type = type,
+                    subject = subject
+                )
             }
-            page.forEach { add(it) }
-            if (page.isNotEmpty()) after = page.last().id!!
+            collectedEvents.addAll(page)
+
+            if (page.isNotEmpty()) {
+                after = page.last().id!!
+            }
         } while (page.size == pageSize)
+
+        return collectedEvents
     }
+
 }
 
 class HandleSyncEventFailedException(val lastSuccessfulEventId: String) : RuntimeException()
@@ -82,25 +116,21 @@ class AltinnBrokerSynchronizer(
 
     private fun findAllFailedEvents(): Set<CloudEvent> {
         val failedEvents = failedEventRepository.findAll().sortedBy { it.created }
-        if (failedEvents.isEmpty()) {
-            return emptySet()
-        }
-        val startId = failedEvents.first().previousEventId
+        if (failedEvents.isEmpty()) return emptySet()
 
+        val startId = failedEvents.first().previousEventId
         val failedEventsIds = failedEvents.map { it.altinnId.toString() }
 
         return buildSet {
-            eventLoader.fetchAndMapEventsByResource(altinnConfig.recipientId) {
-                startId.toString()
-            }
-                .flatten()
-                .forEach { event ->
-                    if (failedEventsIds.contains(event.id)) {
-                        add(event)
-                    }
+            eventLoader
+                .fetchAndMapEventsByResource(altinnConfig.recipientId) {
+                    startId.toString()
                 }
-        }.toSet()
+                .filter { it.id in failedEventsIds }
+                .forEach { add(it) }
+        }
     }
+
 
     // Hovedtanken bak failed events er i et scenario hvor sync er ferdig, og webhook er i ferd med å overta for polling.
     // Dersom webhook prosesserer et event B, og polling feiler på et event A som er sendt mellom sync og når webhook(s) er satt opp, vil
@@ -109,17 +139,9 @@ class AltinnBrokerSynchronizer(
     // I stedet lagres nå "failed events", og disse er de første som behandles ved oppstart.
     suspend fun recoverFailedEvents() {
         val previouslyFailedEvents = findAllFailedEvents()
-        if (previouslyFailedEvents.size > 0) {
+        if (previouslyFailedEvents.isNotEmpty()) {
             logger.info("Found {} previously failed events", previouslyFailedEvents.size)
-            previouslyFailedEvents.forEach {
-                logger.info("Inserting event: {} from previously failed run", it.id)
-                cloudEventHandler.handle(it)
-                // jdbc støtter ikke egendefinert delete i repo-queries (kan evt. legges til ved å bruke templates)
-                failedEventRepository.findDistinctByAltinnIdOrIdNull(UUID.fromString(it.id))?.let {
-                    failedEventRepository.deleteById(it.id!!)
-                    logger.debug("Deleted failed event with id: {}, altinn id: {}", it.id, it.altinnId)
-                } ?: error("Failed to find previously failed event")
-            }
+            previouslyFailedEvents.forEach { handleFailedEvent(it) }
         } else {
             logger.info("No previously failed events found")
         }
@@ -127,12 +149,21 @@ class AltinnBrokerSynchronizer(
         applicationEventPublisher.publishEvent(AltinnProxyStateMachineEvent.RecoverySucceeded())
     }
 
+    private suspend fun handleFailedEvent(event: CloudEvent) {
+        logger.info("Inserting event: ${event.id} from previously failed run")
+        cloudEventHandler.handle(event)
+        // jdbc støtter ikke egendefinert delete i repo-queries (kan evt. legges til ved å bruke templates)
+        failedEventRepository.findDistinctByAltinnIdOrIdNull(UUID.fromString(event.id))?.let {
+            failedEventRepository.deleteById(it.id!!)
+            logger.debug("Deleted failed event with id: ${it.id}, altinn id: ${it.altinnId}")
+        } ?: error("Failed to find previously failed event")
+    }
+
     suspend fun sync(startEventId: String = "0") = coroutineScope {
         var lastSuccessfullId = startEventId
-
         logger.info("Synchronizing events from $startEventId")
+
         val eventsFromAllResources = eventLoader.fetchAndMapEventsByResource(altinnConfig.recipientId) { startEventId }
-            .flatten()
             .sortedBy { it.time }
 
         eventsFromAllResources
@@ -171,7 +202,6 @@ class AltinnBrokerSynchronizer(
             val eventsFromAllResources = eventLoader.fetchAndMapEventsByResource(altinnConfig.recipientId) { resource ->
                 lastSyncedEventPerWebhook[resource]?.id ?: startEventId
             }
-                .flatten()
                 .sortedBy { it.time }
 
             // Vi kan bare forkaste resten dersom time er større eller
