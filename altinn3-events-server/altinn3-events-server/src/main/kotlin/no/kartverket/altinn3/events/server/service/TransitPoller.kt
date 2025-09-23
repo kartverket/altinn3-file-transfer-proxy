@@ -47,7 +47,7 @@ class TransitPoller(
                     }
                 }
             } else {
-                logger.debug("No new utgaender found.. waiting")
+                logger.debug("No new outgoing files found.. waiting")
             }
             delay(pollingInterval)
         }
@@ -59,11 +59,12 @@ class TransitPoller(
                 runCatching {
                     poll()
                 }.onFailure {
+                    logger.error("Error occurred polling outgoing files, {}", it.stackTraceToString())
                     exitProcess(SpringApplication.exit(applicationContext, { 1 }))
                 }
             }
         } else {
-            logger.info("Started without polling for outing files")
+            logger.info("Started without polling for outgoing files")
         }
     }
 }
