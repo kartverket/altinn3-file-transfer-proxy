@@ -5,7 +5,7 @@ import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.buildAndAwait
 import org.springframework.web.reactive.function.server.coRouter
 
-private suspend fun checkAvailability(req: ServerRequest): ServerResponse {
+private suspend fun checkAvailability(@Suppress("UNUSED_PARAMETER") request: ServerRequest): ServerResponse {
     return ServerResponse.ok().buildAndAwait()
 }
 

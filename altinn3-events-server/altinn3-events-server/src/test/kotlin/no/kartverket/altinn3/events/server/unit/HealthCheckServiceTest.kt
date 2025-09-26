@@ -41,8 +41,6 @@ class HealthCheckServiceTest {
         stateMachine = mockk(relaxed = true)
 
         healthCheck = HealthCheckService(
-            properties,
-            altinnServerConfig,
             stateMachine,
             altinnTransitService,
             restClient
@@ -71,7 +69,7 @@ class HealthCheckServiceTest {
     }
 
     @Test
-    fun `checkHealth should publish ServiceUnavailable event when an exception occurs`() {
+    fun `checkHealth should publish WaitForConnection event when an exception occurs`() {
         val res = mockk<RestClient.ResponseSpec>(relaxed = true)
         every { restClient.get().uri(any<String>()).retrieve() } returns res
         every { res.onStatus(any(), any()) } answers {
@@ -92,9 +90,8 @@ class HealthCheckServiceTest {
 
         verify {
             applicationEventPublisher.publishEvent(
-                ofType(AltinnProxyStateMachineEvent.ServiceUnavailable::class)
+                ofType(AltinnProxyStateMachineEvent.WaitForConnection::class)
             )
         }
     }
-
 }

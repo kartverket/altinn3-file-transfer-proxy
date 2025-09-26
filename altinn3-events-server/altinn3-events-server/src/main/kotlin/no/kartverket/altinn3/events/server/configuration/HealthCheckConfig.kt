@@ -8,12 +8,10 @@ import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 
 val healthCheckConfig = beans {
-    bean<HealthCheckService>() {
+    bean<HealthCheckService> {
         val altinnServerConfig = ref<AltinnServerConfig>()
-        val restClient = RestClient.builder().baseUrl(altinnServerConfig.webhookExternalUrl).build()
+        val restClient = RestClient.builder().baseUrl(altinnServerConfig.webhookExternalUrl!!).build()
         HealthCheckService(
-            ref(),
-            altinnServerConfig,
             ref(),
             ref(),
             restClient
@@ -25,7 +23,9 @@ val healthCheckConfig = beans {
 @Component
 @ConfigurationProperties(prefix = "healthcheck")
 class HealthCheckProperties {
-    var interval: Long = 5000  // Default value in milliseconds
+    companion object {
+        const val FIVE_SECONDS: Long = 5000
+    }
+
+    var interval: Long = FIVE_SECONDS
 }
-
-

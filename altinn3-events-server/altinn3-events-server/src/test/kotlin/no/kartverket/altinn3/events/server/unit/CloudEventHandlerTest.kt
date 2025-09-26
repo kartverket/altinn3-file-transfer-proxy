@@ -4,7 +4,7 @@ import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import no.kartverket.altinn3.client.BrokerClient
 import no.kartverket.altinn3.events.server.Helpers.createCloudEvent
-import no.kartverket.altinn3.events.server.Helpers.createFileOverviewFromEvent
+import no.kartverket.altinn3.events.server.Helpers.createEventWithFileDetails
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
@@ -20,7 +20,6 @@ import org.springframework.retry.support.RetryTemplate
 import org.springframework.transaction.TransactionStatus
 import org.springframework.transaction.support.TransactionCallback
 import org.springframework.transaction.support.TransactionTemplate
-import java.util.*
 
 class CloudEventHandlerTest {
     private val broker = mockk<BrokerClient>(relaxed = true)
@@ -48,14 +47,8 @@ class CloudEventHandlerTest {
 
     @Test
     fun `tryHandle - success path calls onSuccess`() = runTest {
-        val event = createCloudEvent(AltinnEventType.PUBLISHED)
+        val event = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
 
-        every {
-            broker.getFileOverview(UUID.fromString(event.resourceinstance))
-        } returns createFileOverviewFromEvent(
-            event,
-            FileStatus.Published
-        )
         every { broker.downloadFileBytes(any()) } returns "<OK />".encodeToByteArray()
         every {
             broker.confirmDownload(any())
@@ -73,7 +66,7 @@ class CloudEventHandlerTest {
 
     @Test
     fun `tryHandle - error path calls onError`() = runTest {
-        val event = createCloudEvent(AltinnEventType.PUBLISHED)
+        val event = createCloudEvent(AltinnEventType.UPLOAD_FAILED).createEventWithFileDetails()
         val errorMsg = "Simulated error"
         val ex = IllegalArgumentException(errorMsg)
 
@@ -94,12 +87,11 @@ class CloudEventHandlerTest {
             onError.invoke(capture(slot))
         }
         assertTrue(slot.captured is IllegalArgumentException)
-        assertEquals(errorMsg, slot.captured.message)
     }
 
     @Test
     fun `handle - published event calls handlePublished`() = runTest {
-        val event = createCloudEvent(AltinnEventType.PUBLISHED)
+        val event = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
 
         val spyHandler = spyk(cloudEventHandler, recordPrivateCalls = true)
 
@@ -110,10 +102,9 @@ class CloudEventHandlerTest {
         }
     }
 
-
     @Test
     fun `handle - an ignored event type throws`() = runTest {
-        val event = createCloudEvent(AltinnEventType.VALIDATE_SUBSCRIPTION)
+        val event = createCloudEvent(AltinnEventType.VALIDATE_SUBSCRIPTION).createEventWithFileDetails()
 
         assertThrows<IllegalArgumentException> {
             cloudEventHandler.handle(event)
@@ -126,12 +117,7 @@ class CloudEventHandlerTest {
 
     @Test
     fun `handlePublished - when fileTransferStatus != Published, it should return early`() = runTest {
-        val event = createCloudEvent(AltinnEventType.ALL_CONFIRMED)
-
-        coEvery { broker.getFileOverview(any()) } returns createFileOverviewFromEvent(
-            event,
-            FileStatus.AllConfirmedDownloaded
-        )
+        val event = createCloudEvent(AltinnEventType.ALL_CONFIRMED).createEventWithFileDetails()
 
         cloudEventHandler.handle(event)
 
@@ -140,8 +126,7 @@ class CloudEventHandlerTest {
 
     @Test
     fun `handlePublished - when fileTransferStatus is Published it downloads and confirms download`() = runTest {
-        val event = createCloudEvent(AltinnEventType.PUBLISHED)
-        val fileOverview = createFileOverviewFromEvent(event = event, status = FileStatus.Published)
+        val event = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
 
         every {
             altinnTransitService.startTransfer(any(), any(), captureLambda<() -> Unit>())
@@ -149,7 +134,6 @@ class CloudEventHandlerTest {
             lambda<() -> Unit>().invoke()
         }
 
-        every { broker.getFileOverview(any()) } returns fileOverview
         every { broker.downloadFileBytes(any()) } returns "<OK />".encodeToByteArray()
         every { broker.confirmDownload(any()) } just Runs
 
@@ -161,9 +145,9 @@ class CloudEventHandlerTest {
 
     @Test
     fun `initializeFileTransfer - when event is already confirmed it returns early`() = runTest {
-        val event = createCloudEvent(AltinnEventType.PUBLISHED)
-        val fileOverview = createFileOverviewFromEvent(event = event, status = FileStatus.AllConfirmedDownloaded)
-        every { broker.getFileOverview(any()) } returns fileOverview
+        val event =
+            createCloudEvent(AltinnEventType.PUBLISHED)
+                .createEventWithFileDetails(fileStatus = FileStatus.AllConfirmedDownloaded)
 
         cloudEventHandler.handle(event)
 

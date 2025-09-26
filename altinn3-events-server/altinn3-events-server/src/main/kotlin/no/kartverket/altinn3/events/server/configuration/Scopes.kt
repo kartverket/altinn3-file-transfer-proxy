@@ -7,7 +7,6 @@ import kotlinx.coroutines.cancel
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
 
-
 class Scopes {
     companion object {
         val altinnProxyScope: CoroutineScope = CoroutineScope(Job() + Dispatchers.Default)

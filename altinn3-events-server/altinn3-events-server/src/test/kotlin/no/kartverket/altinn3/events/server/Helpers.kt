@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.SerializerProvider
 import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
+import no.kartverket.altinn3.events.server.models.EventWithFileOverview
 import no.kartverket.altinn3.models.CloudEvent
 import no.kartverket.altinn3.models.FileOverview
 import no.kartverket.altinn3.models.FileStatus
@@ -59,11 +60,16 @@ object Helpers {
         source = URI.create("test"),
     )
 
-    fun createFileOverviewFromEvent(event: CloudEvent, status: FileStatus = FileStatus.Published) =
+    fun CloudEvent.createEventWithFileDetails(fileStatus: FileStatus = FileStatus.Published) = EventWithFileOverview(
+        cloudEvent = this,
+        fileOverview = createFileOverviewFromEvent(this, fileStatus = fileStatus)
+    )
+
+    private fun createFileOverviewFromEvent(event: CloudEvent, fileStatus: FileStatus) =
         FileOverview(
             fileTransferId = UUID.fromString(event.resourceinstance),
             resourceId = "kv_devtest",
-            fileTransferStatus = status,
+            fileTransferStatus = fileStatus,
             recipients = listOf(RecipientFileTransferStatusDetailsExt(recipient = RECIPIENT_ORG_NR)),
             created = event.time,
             fileName = "file.xml",

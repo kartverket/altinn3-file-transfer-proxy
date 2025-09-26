@@ -41,7 +41,6 @@ class AltinnHealthCheckServiceTest {
         stateMachine = mockk(relaxed = true)
 
         altinnHealthCheck = AltinnHealthCheckService(
-            altinnHealthCheckProperties,
             altinnServerConfig,
             stateMachine,
             altinnTransitService,
@@ -67,7 +66,7 @@ class AltinnHealthCheckServiceTest {
     }
 
     @Test
-    fun `AltinnCheckHealth should publish ServiceUnavailable event when health check is HttpError`() {
+    fun `AltinnCheckHealth should publish WaitForConnection event when health check is HttpError`() {
         every { stateMachine.state } returns State.PollAndWebhook
 
         val responseEntity = ResponseEntity<List<UUID>>(HttpStatus.BAD_REQUEST)
@@ -77,20 +76,20 @@ class AltinnHealthCheckServiceTest {
 
         verify {
             altinnHealthCheck.publisher.publishEvent(
-                ofType(AltinnProxyStateMachineEvent.ServiceUnavailable::class)
+                ofType(AltinnProxyStateMachineEvent.WaitForConnection::class)
             )
         }
     }
 
     @Test
-    fun `checkHealth should publish ServiceUnavailable event when an exception occurs`() {
+    fun `checkHealth should publish WaitForConnection event when an exception occurs`() {
         every { brokerClient.healthCheckViaFileTranser(any<String>()) } throws Exception()
 
         altinnHealthCheck.checkAltinnHealth()
 
         verify {
             applicationEventPublisher.publishEvent(
-                ofType(AltinnProxyStateMachineEvent.ServiceUnavailable::class)
+                ofType(AltinnProxyStateMachineEvent.WaitForConnection::class)
             )
         }
     }

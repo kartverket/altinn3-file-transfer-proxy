@@ -2,6 +2,7 @@ package no.kartverket.altinn3.events.server.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
+import no.kartverket.altinn3.events.server.models.EventWithFileOverview
 import no.kartverket.altinn3.models.CloudEvent
 import no.kartverket.altinn3.models.FileOverview
 import no.kartverket.altinn3.persistence.*
@@ -65,17 +66,17 @@ open class AltinnTransitService(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(javaClass)
 
-    fun prepareForFileTransfer(cloudEvent: CloudEvent, fileDetails: FileOverview) {
+    fun prepareForFileTransfer(event: EventWithFileOverview) {
         transactionTemplate.execute {
-            val altinnEvent = cloudEvent.toAltinnEventEntity()
-            val overview = fileDetails.toAltinnFilOverview()
+            val altinnEvent = event.cloudEvent.toAltinnEventEntity()
+            val overview = event.fileOverview.toAltinnFilOverview()
             val fileTransferId = requireNotNull(overview.fileTransferId)
 
             if (!altinnFilOverviewRepository.existsByFileTransferId(fileTransferId)) {
                 altinnFilOverviewRepository.save(overview)
                 logger.info(
                     "Created and prepared file overview for file reference: {} ",
-                    cloudEvent.resourceinstance
+                    event.cloudEvent.resourceinstance
                 )
             } else {
                 logger.warn("AltinnFilOverview with fileReference: {} already exists", overview.fileTransferId)

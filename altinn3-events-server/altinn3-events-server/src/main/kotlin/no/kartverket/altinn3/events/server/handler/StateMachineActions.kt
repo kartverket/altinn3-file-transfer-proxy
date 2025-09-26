@@ -31,9 +31,10 @@ class StateMachineActions(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun onCriticalError(state: State) {
+    fun onCriticalError(state: State, throwable: Throwable? = null) {
         logger.error("CRITICAL ERROR!")
         logger.error("Error in StateMachine: {}", state)
+        logger.error(throwable.toString())
         exitProcess(SpringApplication.exit(applicationContext, { 1 }))
     }
 
@@ -62,7 +63,6 @@ class StateMachineActions(
             }
         }
     }
-
 
     fun onSyncRequested() {
         Scopes.altinnProxyScope.launch {
@@ -111,13 +111,12 @@ class StateMachineActions(
                 else -> {
                     logger.error("Something went wrong when polling for event.")
                     logger.error(it.message)
-                    AltinnProxyStateMachineEvent.CriticalError(it)
+                    AltinnProxyStateMachineEvent.CriticalError(throwable = it)
                 }
             }
             applicationEventPublisher.publishEvent(eventToPublish)
         }
     }
-
 
     fun onPollingFailed(failedEvent: AltinnFailedEvent) = persistFailedEvent(failedEvent)
     private fun persistFailedEvent(failedEvent: AltinnFailedEvent) {

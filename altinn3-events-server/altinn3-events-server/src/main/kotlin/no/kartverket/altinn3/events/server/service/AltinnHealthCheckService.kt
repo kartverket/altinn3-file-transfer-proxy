@@ -1,7 +1,6 @@
 package no.kartverket.altinn3.events.server.service
 
 import no.kartverket.altinn3.client.BrokerClient
-import no.kartverket.altinn3.events.server.configuration.AltinnHealthCheckProperties
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.configuration.SideEffect
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
@@ -13,7 +12,6 @@ import org.springframework.context.annotation.Profile
 import org.springframework.scheduling.annotation.Scheduled
 
 class AltinnHealthCheckService(
-    private val properties: AltinnHealthCheckProperties,
     private val altinnServerConfig: AltinnServerConfig,
     private val stateMachine: StateMachine<State, AltinnProxyStateMachineEvent, SideEffect>,
     private val altinnTransitService: AltinnTransitService,
@@ -21,7 +19,6 @@ class AltinnHealthCheckService(
 ) : ApplicationEventPublisherAware {
     private val logger = LoggerFactory.getLogger(AltinnHealthCheckService::class.java)
     lateinit var publisher: ApplicationEventPublisher
-
 
     @Profile("!poll")
     @Scheduled(fixedRateString = "#{altinnHealthCheckProperties.interval}", initialDelay = 30000)
@@ -36,7 +33,7 @@ class AltinnHealthCheckService(
                 publisher.publishEvent(AltinnProxyStateMachineEvent.ServiceAvailable())
             }
             if (response.statusCode.is4xxClientError || response.statusCode.is5xxServerError) {
-                publishServiceUnavailableEvent("$${response.statusCode.toString()} ${response.body}")
+                publishServiceUnavailableEvent("$${response.statusCode} ${response.body}")
             }
         } catch (ex: Exception) {
             publishServiceUnavailableEvent(ex.stackTraceToString())
@@ -44,15 +41,15 @@ class AltinnHealthCheckService(
     }
 
     private fun publishServiceUnavailableEvent(errorMessage: String) {
-        logger.error("Could not health check Altinn: ${errorMessage}")
+        logger.error("Could not health check Altinn: $errorMessage")
         if (stateMachine.state != State.Poll) {
             val lastEventId =
-                // TODO: Hva skjer hvis denne får null, og spinnes det ny schedulering opp på en ny tråd? Bør man shutdown?
+                // TODO: Hva skjer hvis denne får null, og spinnes det ny schedulering opp på en ny tråd? Shutdown?
                 requireNotNull(
                     altinnTransitService.findNewestEvent()
                 )
             publisher.publishEvent(
-                AltinnProxyStateMachineEvent.ServiceUnavailable(
+                AltinnProxyStateMachineEvent.WaitForConnection(
                     lastEventId
                 )
             )

@@ -1,7 +1,5 @@
 package no.kartverket.altinn3.events.server.service
 
-import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
-import no.kartverket.altinn3.events.server.configuration.HealthCheckProperties
 import no.kartverket.altinn3.events.server.configuration.SideEffect
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
 import no.kartverket.altinn3.events.server.domain.state.State
@@ -15,8 +13,6 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.web.client.RestClient
 
 class HealthCheckService(
-    private val properties: HealthCheckProperties,
-    private val altinnServerConfig: AltinnServerConfig,
     private val stateMachine: StateMachine<State, AltinnProxyStateMachineEvent, SideEffect>,
     private val altinnTransitService: AltinnTransitService,
     private val restClient: RestClient
@@ -25,15 +21,13 @@ class HealthCheckService(
     private val logger = LoggerFactory.getLogger(HealthCheckService::class.java)
 
     @Profile("!poll")
-    @Scheduled(fixedRateString = "#{@healthCheckProperties.interval}")
+    @Scheduled(fixedRateString = "#{healthCheckProperties.interval}")
     fun checkHealth() {
         try {
-            logger.debug("Checking health of altinn3-proxy")
             val response =
                 restClient.get().uri(HEALTH_CHECK_URL).retrieve()
                     .onStatus(HttpStatusCode::isError) { _, res ->
-                        logger.error("Error checking health check ${res.statusCode} ${res.body}")
-                        publishServiceUnavailableEvent()
+                        publishServiceUnavailableEvent("Error checking health check ${res.statusCode} ${res.body}")
                     }
                     .toBodilessEntity()
 
@@ -41,20 +35,20 @@ class HealthCheckService(
                 publisher.publishEvent(AltinnProxyStateMachineEvent.ServiceAvailable())
             }
         } catch (ex: Exception) {
-            logger.error("Exception checking health check ${ex.printStackTrace()}")
-            publishServiceUnavailableEvent()
+            publishServiceUnavailableEvent("Exception checking health check ${ex.printStackTrace()}")
         }
     }
 
-    private fun publishServiceUnavailableEvent() {
+    private fun publishServiceUnavailableEvent(errorMessage: String) {
+        logger.error(errorMessage)
         if (stateMachine.state != State.Poll) {
             val lastEventId =
-                // TODO: Hva skjer hvis denne får null, og spinnes det ny schedulering opp på en ny tråd? Bør man shutdown?
+                // TODO: Hva skjer hvis denne får null, og spinnes det ny schedulering opp på en ny tråd? Shutdown?
                 requireNotNull(
                     altinnTransitService.findNewestEvent()
                 )
             publisher.publishEvent(
-                AltinnProxyStateMachineEvent.ServiceUnavailable(
+                AltinnProxyStateMachineEvent.WaitForConnection(
                     lastEventId
                 )
             )

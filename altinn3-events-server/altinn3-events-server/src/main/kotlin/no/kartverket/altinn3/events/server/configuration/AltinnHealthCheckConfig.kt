@@ -7,10 +7,9 @@ import org.springframework.context.support.beans
 import org.springframework.stereotype.Component
 
 val altinnHealthCheckConfig = beans {
-    bean<AltinnHealthCheckService>() {
+    bean<AltinnHealthCheckService> {
         val altinnServerConfig = ref<AltinnServerConfig>()
         AltinnHealthCheckService(
-            ref<AltinnHealthCheckProperties>(),
             altinnServerConfig,
             ref(),
             ref(),
@@ -22,7 +21,9 @@ val altinnHealthCheckConfig = beans {
 @Component
 @ConfigurationProperties(prefix = "altinn.config")
 class AltinnHealthCheckProperties {
-    var interval: Long = 10000  // Default value in milliseconds
+    companion object {
+        const val TEN_SECONDS: Long = 10000
+    }
+
+    var interval: Long = TEN_SECONDS
 }
-
-

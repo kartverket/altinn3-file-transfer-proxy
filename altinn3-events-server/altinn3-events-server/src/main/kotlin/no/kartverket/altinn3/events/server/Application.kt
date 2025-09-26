@@ -36,9 +36,9 @@ class ApplicationBeansInitializer : ApplicationContextInitializer<GenericApplica
         beans {
             bean<Scopes.Shutdown>()
         }.initialize(applicationContext)
-        webConfig.initialize(applicationContext)
+        webhookConfig.initialize(applicationContext)
         altinnConfig.initialize(applicationContext)
-        stateConfig.initialize(applicationContext)
+        stateMachineConfig.initialize(applicationContext)
         transitConfig.initialize(applicationContext)
         healthCheckConfig.initialize(applicationContext)
         altinnHealthCheckConfig.initialize(applicationContext)

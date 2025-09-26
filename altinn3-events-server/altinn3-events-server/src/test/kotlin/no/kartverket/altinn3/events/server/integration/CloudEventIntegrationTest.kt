@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import no.kartverket.altinn3.events.server.ApplicationBeansInitializer
 import no.kartverket.altinn3.events.server.Helpers.configuredObjectMapper
 import no.kartverket.altinn3.events.server.Helpers.createCloudEvent
+import no.kartverket.altinn3.events.server.Helpers.createEventWithFileDetails
 import no.kartverket.altinn3.events.server.Helpers.webhooks
 import no.kartverket.altinn3.events.server.config.PostgresTestContainersConfiguration
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
@@ -20,6 +21,7 @@ import no.kartverket.altinn3.events.server.configuration.WebhookAvailabilityStat
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
 import no.kartverket.altinn3.events.server.domain.state.State
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
+import no.kartverket.altinn3.events.server.models.EventWithFileOverview
 import no.kartverket.altinn3.events.server.service.AltinnBrokerSynchronizer
 import no.kartverket.altinn3.events.server.service.EventLoader
 import no.kartverket.altinn3.models.CloudEvent
@@ -222,18 +224,18 @@ class CloudEventIntegrationTest {
             )
         }
 
-        val event1 = createCloudEvent(AltinnEventType.PUBLISHED)
-        val event2 = createCloudEvent(AltinnEventType.PUBLISHED)
+        val event1 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
+        val event2 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
         val failedEvents = listOf(
             AltinnFailedEvent(
-                altinnId = UUID.fromString(event1.id),
+                altinnId = UUID.fromString(event1.cloudEvent.id),
                 altinnProxyState = State.PollAndWebhook::class.simpleName,
                 previousEventId = UUID.randomUUID(),
             ),
             AltinnFailedEvent(
-                altinnId = UUID.fromString(event2.id),
+                altinnId = UUID.fromString(event2.cloudEvent.id),
                 altinnProxyState = State.PollAndWebhook::class.simpleName,
-                previousEventId = UUID.fromString(event1.id),
+                previousEventId = UUID.fromString(event1.cloudEvent.id),
             )
         )
         failedEventRepository.deleteAll()
@@ -241,16 +243,16 @@ class CloudEventIntegrationTest {
 
         assertThat(failedEventRepository.findAll()).hasSize(2)
 
-        every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(setOf(event1, event2))
+        every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(event1, event2)
         coEvery { cloudEventHandler.handle(any()) } just runs
 
         brokerSynchronizer.recoverFailedEvents()
         assertThat(failedEventRepository.findAll()).hasSize(0)
 
-        val handledEvents = mutableListOf<CloudEvent>()
+        val handledEvents = mutableListOf<EventWithFileOverview>()
         coVerify { cloudEventHandler.handle(capture(handledEvents)) }
 
-        assertThat(handledEvents).anyMatch { it.id == event1.id }
-        assertThat(handledEvents).anyMatch { it.id == event2.id }
+        assertThat(handledEvents).anyMatch { it.cloudEvent.id == event1.cloudEvent.id }
+        assertThat(handledEvents).anyMatch { it.cloudEvent.id == event2.cloudEvent.id }
     }
 }

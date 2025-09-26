@@ -5,9 +5,8 @@ import kotlinx.coroutines.withContext
 import no.kartverket.altinn3.client.BrokerClient
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
+import no.kartverket.altinn3.events.server.models.EventWithFileOverview
 import no.kartverket.altinn3.events.server.service.AltinnTransitService
-import no.kartverket.altinn3.models.CloudEvent
-import no.kartverket.altinn3.models.FileOverview
 import no.kartverket.altinn3.models.FileTransferStatus
 import no.kartverket.altinn3.models.RecipientFileTransferStatusDetailsExt
 import org.slf4j.Logger
@@ -24,7 +23,7 @@ class CloudEventHandler(
     private val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     suspend fun <T> tryHandle(
-        event: CloudEvent,
+        event: EventWithFileOverview,
         onSuccess: suspend () -> T,
         onFailure: suspend (Throwable) -> T
     ): T = runCatching {
@@ -35,8 +34,8 @@ class CloudEventHandler(
         onFailure(error)
     }
 
-    suspend fun handle(event: CloudEvent) {
-        when (AltinnEventType.from(event.type!!)) {
+    suspend fun handle(event: EventWithFileOverview) {
+        when (AltinnEventType.from(event.cloudEvent.type!!)) {
             AltinnEventType.PUBLISHED -> handlePublished(event)
             AltinnEventType.INITIALIZED -> logger.info("Filetransfer initialized")
             AltinnEventType.NEVER_CONFIRMED -> handleNeverConfirmed(event)
@@ -55,31 +54,27 @@ class CloudEventHandler(
      *
      * @return true if the file is initialized and ready for download, otherwise false
      * */
-    private fun initializeFileTransfer(fileTransferOverview: FileOverview, event: CloudEvent): Boolean {
-        logger.debug("Initializing filetransfer on fileTransferId: {}", fileTransferOverview.fileTransferId)
+    private fun initializeFileTransfer(event: EventWithFileOverview): Boolean {
+        logger.debug("Initializing filetransfer on fileTransferId: {}", event.fileOverview.fileTransferId)
 
-        val fileTransferStatus = requireNotNull(fileTransferOverview.fileTransferStatus)
+        val fileTransferStatus = requireNotNull(event.fileOverview.fileTransferStatus)
 
         // 1 - Når vi synkroniserer vil det være tilfeller av events hvor filen allerede er lastet ned. Disse ignoreres.
         // 2 - Vi får også published-events når vi laster opp filer.
         val isReady =
-            fileTransferStatus == FileTransferStatus.Published && isIngoingFile(fileTransferOverview.recipients)
+            fileTransferStatus == FileTransferStatus.Published && isIngoingFile(event.fileOverview.recipients)
 
         if (!isReady) {
-            logger.debug("Ignoring event with event id ${event.id}.")
-
+            logger.debug("Ignoring event with event id ${event.cloudEvent.id}.")
             return false
         }
 
-        altinnTransitService.prepareForFileTransfer(event, fileTransferOverview)
+        altinnTransitService.prepareForFileTransfer(event)
         return true
     }
 
-    private suspend fun handleNeverConfirmed(event: CloudEvent) {
-        val resourceInstance = UUID.fromString(event.resourceinstance)
-        val fileMeta = retryTemplate.execute<FileOverview, IllegalStateException> {
-            broker.getFileOverview(resourceInstance)
-        }
+    private suspend fun handleNeverConfirmed(event: EventWithFileOverview) {
+        val fileMeta = event.fileOverview
         logger.error(
             "Recieved file never confirmed event!\nRecipient(s): {}\n fileTransferId: {}",
             fileMeta.recipients,
@@ -89,12 +84,11 @@ class CloudEventHandler(
             handlePublished(event)
     }
 
-    private suspend fun handlePublished(event: CloudEvent) = withContext(Dispatchers.IO) {
-        val resourceInstance = UUID.fromString(event.resourceinstance)
-        val fileMeta = retryTemplate.execute<FileOverview, IllegalStateException> {
-            broker.getFileOverview(resourceInstance)
-        }
-        if (!initializeFileTransfer(fileMeta, event)) return@withContext
+    private suspend fun handlePublished(event: EventWithFileOverview) = withContext(Dispatchers.IO) {
+        val resourceInstance = UUID.fromString(event.cloudEvent.resourceinstance)
+        val fileMeta = event.fileOverview
+
+        if (!initializeFileTransfer(event)) return@withContext
 
         logger.debug("Starting filetransfer on fileTransferId: {}", fileMeta.fileTransferId)
 
@@ -110,8 +104,6 @@ class CloudEventHandler(
     }
 
     private fun isIngoingFile(recipients: List<RecipientFileTransferStatusDetailsExt>?): Boolean {
-        val recip = recipients ?: return false
-
-        return recip.any { it.recipient?.contains(altinnServerConfig.recipientId) == true }
+        return recipients?.any { it.recipient?.contains(altinnServerConfig.recipientId) == true } ?: false
     }
 }

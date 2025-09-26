@@ -12,11 +12,12 @@ sealed class AltinnProxyStateMachineEvent {
     class PollingFailed(val failedEvent: AltinnFailedEvent) : AltinnProxyStateMachineEvent()
     class PollingSucceeded : AltinnProxyStateMachineEvent()
     class ServiceUnavailable(val lastSyncedEvent: String) : AltinnProxyStateMachineEvent()
+    class WaitForConnection(val lastSyncedEvent: String) : AltinnProxyStateMachineEvent()
     class ServiceAvailable : AltinnProxyStateMachineEvent()
     class WebhookValidated : AltinnProxyStateMachineEvent()
     class WebhookFailed : AltinnProxyStateMachineEvent()
     class WebhookReady(val cloudEventTime: OffsetDateTime) : AltinnProxyStateMachineEvent()
-    class CriticalError(t: Throwable? = null) : AltinnProxyStateMachineEvent()
+    class CriticalError(val throwable: Throwable? = null) : AltinnProxyStateMachineEvent()
     class Stop : AltinnProxyStateMachineEvent()
 
     override fun toString(): String = javaClass.simpleName

@@ -9,14 +9,12 @@ import no.kartverket.altinn3.events.server.configuration.AltinnWebhooks
 import no.kartverket.altinn3.events.server.service.AltinnWebhookInitializer
 import no.kartverket.altinn3.models.Subscription
 import org.junit.jupiter.api.Test
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.retry.support.RetryTemplate
 import java.net.URI
 import kotlin.time.Duration
 
 class AltinnWebhookInitializerTest {
     private val eventsClient = mockk<EventsClient>()
-    private val applicationEventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
     private val altinnWebhooks = mockk<AltinnWebhooks>(relaxed = true)
     private val retryTemplate = RetryTemplate.builder().maxAttempts(1).build()
     private val subscriptionApi = mockk<SubscriptionApi>()
@@ -38,8 +36,8 @@ class AltinnWebhookInitializerTest {
         resourceFilter = "resFilter2",
         typeFilter = "someType"
     )
-    val resFilter1 = URI.create("resFilter1")
-    val resFilter2 = URI.create("resFilter2")
+    val resFilter1: URI = URI.create("resFilter1")
+    val resFilter2: URI = URI.create("resFilter2")
     val sub1 = Subscription(1, URI.create("endpoint1"), resFilter1, "type1")
     val sub2 = Subscription(2, URI.create("endpoint2"), resFilter2, "type2")
 
