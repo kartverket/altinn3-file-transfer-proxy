@@ -41,6 +41,7 @@ altinn:
         - altinn:broker.write
         - altinn:broker.read
         - altinn:events.subscribe
+  skip-poll-and-webhook: false
 
 logging:
   level:

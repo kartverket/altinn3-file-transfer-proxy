@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.retry.support.RetryTemplate
 import org.springframework.web.reactive.function.server.*
+import java.time.OffsetDateTime
 import java.util.*
 
 val webhookConfig = beans {
@@ -84,6 +85,7 @@ class WebhookRequestHandler(
     private val applicationEventPublisher: ApplicationEventPublisher,
     private val brokerClient: BrokerClient,
     private val retryTemplate: RetryTemplate,
+    private val skipPollAndWebhook: Boolean,
 ) : suspend (ServerRequest) -> ServerResponse {
 
     private val logger: Logger = LoggerFactory.getLogger(javaClass)
@@ -100,6 +102,13 @@ class WebhookRequestHandler(
                 logger.info("Validation event received: $cloudEvent")
                 ServerResponse.ok().buildAndAwait().also {
                     applicationEventPublisher.publishEvent(AltinnProxyStateMachineEvent.WebhookValidated())
+                    if (skipPollAndWebhook) {
+                        applicationEventPublisher.publishEvent(
+                            AltinnProxyStateMachineEvent.WebhookReady(
+                                cloudEvent.time ?: OffsetDateTime.now()
+                            )
+                        )
+                    }
                 }
             }
 
@@ -135,7 +144,7 @@ class WebhooksRouterProvider(
             POST(
                 "${it.path}",
                 accept(CLOUDEVENTS_JSON),
-                WebhookRequestHandler(handler, applicationEventPublisher, brokerClient, retryTemplate),
+                WebhookRequestHandler(handler, applicationEventPublisher, brokerClient, retryTemplate, altinn.skipPollAndWebhook),
             )
         }
     }

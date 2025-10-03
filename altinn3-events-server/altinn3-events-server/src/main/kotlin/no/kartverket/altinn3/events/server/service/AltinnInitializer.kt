@@ -232,6 +232,16 @@ class AltinnBrokerSynchronizer(
             }
                 .sortedBy { it.fileOverview.created }
 
+            // Hvis staten er Webhook og det ikke er flere events å prosessere, stopper polling
+            if (eventRecievedInWebhooksCreatedAt != null && eventsFromAllResources.isEmpty()) {
+                logger.info("Webhook ready and no more events to process. Stopping polling.")
+                poll = false
+                applicationEventPublisher.publishEvent(
+                    AltinnProxyStateMachineEvent.PollingSucceeded()
+                )
+                continue
+            }
+
             // Vi kan bare forkaste resten dersom time er større eller
             // lik eventRecievedInWebhooksCreatedAt, siden listen er sortert
             val lastIndex = eventsFromAllResources.indexOfFirst {

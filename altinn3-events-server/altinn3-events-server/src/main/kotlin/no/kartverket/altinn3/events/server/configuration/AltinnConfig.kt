@@ -93,7 +93,8 @@ data class AltinnServerConfig(
     var webhookExternalUrl: String? = null,
     var webhooks: List<AltinnWebhook> = emptyList(),
     var startEvent: String?,
-    var serviceownerOrgnumber: String? = null
+    var serviceownerOrgnumber: String? = null,
+    var skipPollAndWebhook: Boolean = false
 )
 
 data class AltinnRetryConfig(
