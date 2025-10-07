@@ -1,5 +1,7 @@
 package no.kartverket.altinn3.events.server.configuration
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import no.kartverket.altinn3.client.BrokerClient
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
@@ -121,8 +123,8 @@ class WebhookRequestHandler(
         }
     }
 
-    private fun fetchFileOverview(resourceInstance: String): FileOverview {
-        return retryTemplate.execute<FileOverview, Exception> {
+    private suspend fun fetchFileOverview(resourceInstance: String): FileOverview = withContext(Dispatchers.IO) {
+        retryTemplate.execute<FileOverview, Exception> {
             brokerClient.getFileOverview(UUID.fromString(resourceInstance))
         }
     }
@@ -144,7 +146,13 @@ class WebhooksRouterProvider(
             POST(
                 "${it.path}",
                 accept(CLOUDEVENTS_JSON),
-                WebhookRequestHandler(handler, applicationEventPublisher, brokerClient, retryTemplate, altinn.skipPollAndWebhook),
+                WebhookRequestHandler(
+                    handler,
+                    applicationEventPublisher,
+                    brokerClient,
+                    retryTemplate,
+                    altinn.skipPollAndWebhook
+                ),
             )
         }
     }
