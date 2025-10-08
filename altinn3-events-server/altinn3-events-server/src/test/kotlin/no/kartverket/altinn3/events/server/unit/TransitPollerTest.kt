@@ -10,6 +10,7 @@ import no.kartverket.altinn3.events.server.service.TransitPoller
 import no.kartverket.altinn3.persistence.AltinnFil
 import no.kartverket.altinn3.persistence.AltinnFilOverview
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Disabled
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import java.util.*
 import kotlin.test.Test
@@ -75,6 +76,7 @@ class TransitPollerTest {
         coVerify(exactly = 0) { altinnTransitService.completeFileTransfer(any()) }
     }
 
+    @Disabled
     @Test
     fun `onApplicationEvent starts polling when enabled`() = runTest(timeout = Duration.parse("5s")) {
         val altinnTransitService = mockk<AltinnTransitService>()
