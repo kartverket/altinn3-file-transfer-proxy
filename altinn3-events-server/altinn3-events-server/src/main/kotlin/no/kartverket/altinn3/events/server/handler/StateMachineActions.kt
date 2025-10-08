@@ -5,9 +5,9 @@ import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.configuration.Scopes
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
 import no.kartverket.altinn3.events.server.domain.state.State
+import no.kartverket.altinn3.events.server.exceptions.HandlePollEventFailedException
 import no.kartverket.altinn3.events.server.service.AltinnBrokerSynchronizer
 import no.kartverket.altinn3.events.server.service.AltinnWebhookInitializer
-import no.kartverket.altinn3.events.server.service.HandlePollEventFailedException
 import no.kartverket.altinn3.persistence.AltinnFailedEvent
 import no.kartverket.altinn3.persistence.AltinnFailedEventRepository
 import org.slf4j.LoggerFactory

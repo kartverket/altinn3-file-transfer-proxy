@@ -12,15 +12,15 @@ import kotlinx.coroutines.withContext
 import no.kartverket.altinn3.events.server.ApplicationBeansInitializer
 import no.kartverket.altinn3.events.server.Helpers.configuredObjectMapper
 import no.kartverket.altinn3.events.server.Helpers.createCloudEvent
-import no.kartverket.altinn3.events.server.Helpers.createEventWithFileDetails
+import no.kartverket.altinn3.events.server.Helpers.createEventWithFileOverview
 import no.kartverket.altinn3.events.server.Helpers.webhooks
 import no.kartverket.altinn3.events.server.config.PostgresTestContainersConfiguration
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
-import no.kartverket.altinn3.events.server.configuration.CLOUDEVENTS_JSON
-import no.kartverket.altinn3.events.server.configuration.WebhookAvailabilityStatus
+import no.kartverket.altinn3.events.server.constants.CLOUDEVENTS_JSON
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
 import no.kartverket.altinn3.events.server.domain.state.State
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
+import no.kartverket.altinn3.events.server.interfaces.WebhookAvailabilityStatus
 import no.kartverket.altinn3.events.server.models.EventWithFileOverview
 import no.kartverket.altinn3.events.server.service.AltinnBrokerSynchronizer
 import no.kartverket.altinn3.events.server.service.EventLoader
@@ -224,8 +224,8 @@ class CloudEventIntegrationTest {
             )
         }
 
-        val event1 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
-        val event2 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
+        val event1 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
+        val event2 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
         val failedEvents = listOf(
             AltinnFailedEvent(
                 altinnId = UUID.fromString(event1.cloudEvent.id),

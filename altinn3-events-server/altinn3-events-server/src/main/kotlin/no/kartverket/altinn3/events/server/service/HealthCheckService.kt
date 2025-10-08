@@ -1,8 +1,8 @@
 package no.kartverket.altinn3.events.server.service
 
-import no.kartverket.altinn3.events.server.configuration.SideEffect
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
 import no.kartverket.altinn3.events.server.domain.state.State
+import no.kartverket.altinn3.events.server.models.SideEffect
 import no.kartverket.altinn3.events.server.routes.HEALTH_CHECK_URL
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher

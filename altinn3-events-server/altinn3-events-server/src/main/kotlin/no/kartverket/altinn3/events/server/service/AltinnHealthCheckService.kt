@@ -2,9 +2,9 @@ package no.kartverket.altinn3.events.server.service
 
 import no.kartverket.altinn3.client.BrokerClient
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
-import no.kartverket.altinn3.events.server.configuration.SideEffect
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
 import no.kartverket.altinn3.events.server.domain.state.State
+import no.kartverket.altinn3.events.server.models.SideEffect
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.ApplicationEventPublisherAware

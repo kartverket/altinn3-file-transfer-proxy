@@ -3,17 +3,17 @@ package no.kartverket.altinn3.events.server.unit
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import no.kartverket.altinn3.events.server.Helpers.createCloudEvent
-import no.kartverket.altinn3.events.server.Helpers.createEventWithFileDetails
+import no.kartverket.altinn3.events.server.Helpers.createEventWithFileOverview
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
 import no.kartverket.altinn3.events.server.domain.state.State
+import no.kartverket.altinn3.events.server.exceptions.HandlePollEventFailedException
+import no.kartverket.altinn3.events.server.exceptions.HandleSyncEventFailedException
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
 import no.kartverket.altinn3.events.server.models.EventWithFileOverview
 import no.kartverket.altinn3.events.server.service.AltinnBrokerSynchronizer
 import no.kartverket.altinn3.events.server.service.EventLoader
-import no.kartverket.altinn3.events.server.service.HandlePollEventFailedException
-import no.kartverket.altinn3.events.server.service.HandleSyncEventFailedException
 import no.kartverket.altinn3.persistence.AltinnFailedEvent
 import no.kartverket.altinn3.persistence.AltinnFailedEventRepository
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -50,8 +50,8 @@ class AltinnBrokerSynchronizerTest {
 
     @Test
     fun `recoverFailedEvents() - calls failedEventsRepo and publishes RecoveryDoneEvent`() = runTest {
-        val event1 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
-        val event2 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
+        val event1 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
+        val event2 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
         val failedEvent1 = AltinnFailedEvent(
             UUID.fromString(event1.cloudEvent.id),
             UUID.randomUUID(),
@@ -75,8 +75,8 @@ class AltinnBrokerSynchronizerTest {
 
     @Test
     fun `sync() - calls fetchAndMapEventsByResource and publishes AltinnSyncFinishedEvent`() = runTest {
-        val event1 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
-        val event2 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
+        val event1 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
+        val event2 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
 
         every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(event1, event2)
 
@@ -94,8 +94,8 @@ class AltinnBrokerSynchronizerTest {
     @Test
     fun `poll() - runs until end event is reached and publishes PollingStartedEvent and PollingReachedEndEvent`() =
         runTest {
-            val cloudEvent1 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
-            val cloudEvent2 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
+            val cloudEvent1 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
+            val cloudEvent2 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
 
             every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(
                 cloudEvent1,
@@ -123,7 +123,7 @@ class AltinnBrokerSynchronizerTest {
     @Test
     fun `sync() - onError triggers HandleSyncEventFailedException with correct eventId`() = runTest {
         val event: EventWithFileOverview =
-            createCloudEvent(AltinnEventType.PUBLISHED).copy(id = "someEventId").createEventWithFileDetails()
+            createCloudEvent(AltinnEventType.PUBLISHED).copy(id = "someEventId").createEventWithFileOverview()
 
         every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(event)
 
@@ -148,7 +148,7 @@ class AltinnBrokerSynchronizerTest {
     @Test
     fun `poll() - onError triggers HandlePollEventFailedException with correct eventId`() = runTest {
         val event: EventWithFileOverview =
-            createCloudEvent(AltinnEventType.PUBLISHED).copy(id = "pollEventId").createEventWithFileDetails()
+            createCloudEvent(AltinnEventType.PUBLISHED).copy(id = "pollEventId").createEventWithFileOverview()
 
         every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(event)
         every { altinnConfig.pollAltinnInterval } returns "1s"

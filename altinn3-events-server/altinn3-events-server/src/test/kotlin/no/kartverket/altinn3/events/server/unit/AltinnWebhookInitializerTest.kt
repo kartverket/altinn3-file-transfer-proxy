@@ -4,8 +4,8 @@ import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import no.kartverket.altinn3.client.EventsClient
 import no.kartverket.altinn3.events.apis.SubscriptionApi
-import no.kartverket.altinn3.events.server.configuration.AltinnWebhook
 import no.kartverket.altinn3.events.server.configuration.AltinnWebhooks
+import no.kartverket.altinn3.events.server.models.AltinnWebhook
 import no.kartverket.altinn3.events.server.service.AltinnWebhookInitializer
 import no.kartverket.altinn3.models.Subscription
 import org.junit.jupiter.api.Test

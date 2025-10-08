@@ -3,9 +3,9 @@ package no.kartverket.altinn3.events.server.unit
 import io.mockk.*
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.configuration.HealthCheckProperties
-import no.kartverket.altinn3.events.server.configuration.SideEffect
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
 import no.kartverket.altinn3.events.server.domain.state.State
+import no.kartverket.altinn3.events.server.models.SideEffect
 import no.kartverket.altinn3.events.server.service.AltinnTransitService
 import no.kartverket.altinn3.events.server.service.HealthCheckService
 import no.kartverket.altinn3.events.server.service.StateMachine

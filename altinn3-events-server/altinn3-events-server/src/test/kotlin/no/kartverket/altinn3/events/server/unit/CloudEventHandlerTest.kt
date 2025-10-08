@@ -4,7 +4,7 @@ import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import no.kartverket.altinn3.client.BrokerClient
 import no.kartverket.altinn3.events.server.Helpers.createCloudEvent
-import no.kartverket.altinn3.events.server.Helpers.createEventWithFileDetails
+import no.kartverket.altinn3.events.server.Helpers.createEventWithFileOverview
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
@@ -47,7 +47,7 @@ class CloudEventHandlerTest {
 
     @Test
     fun `tryHandle - success path calls onSuccess`() = runTest {
-        val event = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
+        val event = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
 
         every { broker.downloadFileBytes(any()) } returns "<OK />".encodeToByteArray()
         every {
@@ -66,7 +66,7 @@ class CloudEventHandlerTest {
 
     @Test
     fun `tryHandle - error path calls onError`() = runTest {
-        val event = createCloudEvent(AltinnEventType.UPLOAD_FAILED).createEventWithFileDetails()
+        val event = createCloudEvent(AltinnEventType.UPLOAD_FAILED).createEventWithFileOverview()
         val errorMsg = "Simulated error"
         val ex = IllegalArgumentException(errorMsg)
 
@@ -91,7 +91,7 @@ class CloudEventHandlerTest {
 
     @Test
     fun `handle - published event calls handlePublished`() = runTest {
-        val event = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
+        val event = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
 
         val spyHandler = spyk(cloudEventHandler, recordPrivateCalls = true)
 
@@ -104,7 +104,7 @@ class CloudEventHandlerTest {
 
     @Test
     fun `handle - an ignored event type throws`() = runTest {
-        val event = createCloudEvent(AltinnEventType.VALIDATE_SUBSCRIPTION).createEventWithFileDetails()
+        val event = createCloudEvent(AltinnEventType.VALIDATE_SUBSCRIPTION).createEventWithFileOverview()
 
         assertThrows<IllegalArgumentException> {
             cloudEventHandler.handle(event)
@@ -117,7 +117,7 @@ class CloudEventHandlerTest {
 
     @Test
     fun `handlePublished - when fileTransferStatus != Published, it should return early`() = runTest {
-        val event = createCloudEvent(AltinnEventType.ALL_CONFIRMED).createEventWithFileDetails()
+        val event = createCloudEvent(AltinnEventType.ALL_CONFIRMED).createEventWithFileOverview()
 
         cloudEventHandler.handle(event)
 
@@ -126,7 +126,7 @@ class CloudEventHandlerTest {
 
     @Test
     fun `handlePublished - when fileTransferStatus is Published it downloads and confirms download`() = runTest {
-        val event = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileDetails()
+        val event = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
 
         every {
             altinnTransitService.startTransfer(any(), any(), captureLambda<() -> Unit>())
@@ -147,7 +147,7 @@ class CloudEventHandlerTest {
     fun `initializeFileTransfer - when event is already confirmed it returns early`() = runTest {
         val event =
             createCloudEvent(AltinnEventType.PUBLISHED)
-                .createEventWithFileDetails(fileStatus = FileStatus.AllConfirmedDownloaded)
+                .createEventWithFileOverview(fileStatus = FileStatus.AllConfirmedDownloaded)
 
         cloudEventHandler.handle(event)
 

@@ -8,6 +8,7 @@ import no.kartverket.altinn3.config.MaskinportenConfig
 import no.kartverket.altinn3.events.apis.EventsApi
 import no.kartverket.altinn3.events.apis.SubscriptionApi
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
+import no.kartverket.altinn3.events.server.models.AltinnWebhook
 import no.kartverket.altinn3.events.server.service.*
 import no.kartverket.altinn3.persistence.AltinnEventRepository
 import org.springframework.boot.context.properties.ConfigurationProperties
@@ -35,13 +36,13 @@ val altinnConfig = beans {
         bean<AltinnBrokerSynchronizer>()
         bean<AltinnWebhookInitializer>()
         bean<EventsApi> {
-            AltinnAPIConfig.createEventApi(ref(), ref())
+            AltinnApiClientBuilder.createEventApi(ref(), ref())
         }
         bean<SubscriptionApi> {
-            AltinnAPIConfig.createSubscriptionApi(ref(), ref())
+            AltinnApiClientBuilder.createSubscriptionApi(ref(), ref())
         }
         bean<FileTransferApi> {
-            AltinnAPIConfig.createFileTransferApi(ref(), ref())
+            AltinnApiClientBuilder.createFileTransferApi(ref(), ref())
         }
         bean<RetryTemplate> {
             RetryConfig.createRetryTemplate(ref())
@@ -104,23 +105,16 @@ data class AltinnRetryConfig(
     var maxAttempts: Int = 10
 )
 
-class AltinnWebhooks(altinnServerConfig: AltinnServerConfig) : List<AltinnWebhook> by altinnServerConfig.webhooks {
-
-    private val webhookExternalUri: String? by altinnServerConfig::webhookExternalUrl
-
+class AltinnWebhooks(private val altinnServerConfig: AltinnServerConfig) :
+    List<AltinnWebhook> by altinnServerConfig.webhooks {
     fun webhookEndpoint(webhook: AltinnWebhook): URI {
-        return URI.create(
-            webhookExternalUri!!.trim().trimEnd('/') + webhook.path!!.trim().let {
-                if (it.startsWith('/')) it else "/$it"
-            }
-        )
+        val baseUrl = altinnServerConfig.webhookExternalUrl?.trim()?.trimEnd('/')
+            ?: throw IllegalStateException("Webhook external URL is not configured")
+
+        val path = webhook.path?.trim()?.let {
+            if (it.startsWith('/')) it else "/$it"
+        } ?: throw IllegalArgumentException("Webhook path is not specified")
+
+        return URI.create("$baseUrl$path")
     }
 }
-
-data class AltinnWebhook(
-    var path: String? = null,
-    var resourceFilter: String? = null,
-    var subjectFilter: String? = null,
-    var typeFilter: String? = null,
-    var handler: String = "webhookHandler",
-)

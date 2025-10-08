@@ -60,7 +60,7 @@ object Helpers {
         source = URI.create("test"),
     )
 
-    fun CloudEvent.createEventWithFileDetails(fileStatus: FileStatus = FileStatus.Published) = EventWithFileOverview(
+    fun CloudEvent.createEventWithFileOverview(fileStatus: FileStatus = FileStatus.Published) = EventWithFileOverview(
         cloudEvent = this,
         fileOverview = createFileOverviewFromEvent(this, fileStatus = fileStatus)
     )

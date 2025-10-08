@@ -4,9 +4,9 @@ import io.mockk.*
 import no.kartverket.altinn3.client.BrokerClient
 import no.kartverket.altinn3.events.server.configuration.AltinnHealthCheckProperties
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
-import no.kartverket.altinn3.events.server.configuration.SideEffect
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
 import no.kartverket.altinn3.events.server.domain.state.State
+import no.kartverket.altinn3.events.server.models.SideEffect
 import no.kartverket.altinn3.events.server.service.AltinnHealthCheckService
 import no.kartverket.altinn3.events.server.service.AltinnTransitService
 import no.kartverket.altinn3.events.server.service.StateMachine

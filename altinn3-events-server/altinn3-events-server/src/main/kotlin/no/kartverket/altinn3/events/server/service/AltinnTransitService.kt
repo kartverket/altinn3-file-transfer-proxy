@@ -1,9 +1,9 @@
 package no.kartverket.altinn3.events.server.service
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
+import no.kartverket.altinn3.events.server.mappers.toAltinnEventEntity
+import no.kartverket.altinn3.events.server.mappers.toAltinnFilOverview
 import no.kartverket.altinn3.events.server.models.EventWithFileOverview
-import no.kartverket.altinn3.models.CloudEvent
 import no.kartverket.altinn3.models.FileOverview
 import no.kartverket.altinn3.persistence.*
 import org.slf4j.Logger
@@ -11,32 +11,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDateTime
-import java.util.*
 import java.util.function.Supplier
-
-fun CloudEvent.toAltinnEventEntity() = AltinnEvent(
-    specVersion = specversion,
-    altinnId = UUID.fromString(id),
-    type = type,
-    time = time?.toLocalDateTime(),
-    resource = resource,
-    resourceinstance = UUID.fromString(resourceinstance),
-    source = source.toString()
-)
-
-private fun FileOverview.toAltinnFilOverview() = AltinnFilOverview(
-    fileName = this.fileName,
-    checksum = this.checksum,
-    sendersReference = this.sendersFileTransferReference,
-    sender = this.sender,
-    created = this.created?.toLocalDateTime(),
-    received = LocalDateTime.now(),
-    fileTransferId = this.fileTransferId,
-    resourceId = this.resourceId,
-    transitStatus = TransitStatus.NEW,
-    direction = Direction.IN,
-    jsonPropertyList = jacksonObjectMapper().writeValueAsString(this.propertyList)
-)
 
 /**
  * @return the event from which the synchronization should start at, in the following priority:
