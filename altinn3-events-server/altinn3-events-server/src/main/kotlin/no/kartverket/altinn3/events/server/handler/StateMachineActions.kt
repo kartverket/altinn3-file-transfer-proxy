@@ -51,12 +51,15 @@ class StateMachineActions(
         }
     }
 
-    fun onServiceAvailableAfterUnavailability() {
+    fun onServiceAvailableAfterUnavailability(lastSyncedEvent: String) {
         Scopes.altinnProxyScope.launch {
+            launch {
+                startPolling(lastSyncedEvent)
+            }
             runCatching {
+                altinnWebhookInitializer.deleteSubscriptions()
                 setupWebhooks()
             }.onFailure {
-                logger.error("")
                 logger.error(it.message)
                 logger.error(it.stackTraceToString())
                 applicationEventPublisher.publishEvent(AltinnProxyStateMachineEvent.RecoveryFailed())

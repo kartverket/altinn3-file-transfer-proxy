@@ -107,7 +107,7 @@ private fun initializeStateMachine(
             transitionTo(State.Error, SideEffect.PollFailed)
         }
         on<AltinnProxyStateMachineEvent.ServiceAvailable> {
-            transitionTo(State.SetupWebhook, SideEffect.WebhookRequested)
+            transitionTo(State.SetupWebhook, SideEffect.ServiceAvailableAgainAfterUnavailability)
         }
     }
     state<State.SetupWebhook> {
@@ -170,7 +170,6 @@ private fun initializeStateMachine(
             } on event: ${it.event.toString().uppercase()}"
         )
         val sideEffect = transition.sideEffect ?: return@onTransition
-
         when (sideEffect) {
             SideEffect.RecoveryRequested -> actions.onRecoveryRequested()
             SideEffect.RecoveryFailed -> actions.onCriticalError(it.fromState)
@@ -182,7 +181,8 @@ private fun initializeStateMachine(
             }
 
             SideEffect.ServiceAvailableAgainAfterUnavailability -> {
-                actions.onServiceAvailableAfterUnavailability()
+                val altinnProxyStateMachineEvent = it.event as AltinnProxyStateMachineEvent.ServiceAvailable
+                actions.onServiceAvailableAfterUnavailability(altinnProxyStateMachineEvent.lastSyncedEvent)
             }
 
             SideEffect.PollRequested -> {

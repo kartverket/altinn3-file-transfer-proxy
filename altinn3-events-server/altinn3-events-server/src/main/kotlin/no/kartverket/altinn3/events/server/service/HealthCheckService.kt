@@ -9,7 +9,6 @@ import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.ApplicationEventPublisherAware
 import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpStatusCode
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.web.client.RestClient
 
 class HealthCheckService(
@@ -21,7 +20,8 @@ class HealthCheckService(
     private val logger = LoggerFactory.getLogger(HealthCheckService::class.java)
 
     @Profile("!poll")
-    @Scheduled(fixedRateString = "#{healthCheckProperties.interval}")
+    // Disabled for now
+    // @Scheduled(fixedRateString = "#{healthCheckProperties.interval}")
     fun checkHealth() {
         try {
             val response =
@@ -32,7 +32,12 @@ class HealthCheckService(
                     .toBodilessEntity()
 
             if (stateMachine.state == State.Poll && response.statusCode.is2xxSuccessful) {
-                publisher.publishEvent(AltinnProxyStateMachineEvent.ServiceAvailable())
+                val lastEventId =
+                    // TODO: Hva skjer hvis denne får null, og spinnes det ny schedulering opp på en ny tråd? Shutdown?
+                    requireNotNull(
+                        altinnTransitService.findNewestEvent()
+                    )
+                publisher.publishEvent(AltinnProxyStateMachineEvent.ServiceAvailable(lastEventId))
             }
         } catch (ex: Exception) {
             publishServiceUnavailableEvent("Exception checking health check ${ex.printStackTrace()}")

@@ -30,7 +30,12 @@ class AltinnHealthCheckService(
             val response =
                 brokerClient.healthCheckViaFileTranser(resourceId = altinnServerConfig.resourceId)
             if (stateMachine.state == State.Poll && response.statusCode.is2xxSuccessful) {
-                publisher.publishEvent(AltinnProxyStateMachineEvent.ServiceAvailable())
+                val lastEventId =
+                    // TODO: Hva skjer hvis denne får null, og spinnes det ny schedulering opp på en ny tråd? Shutdown?
+                    requireNotNull(
+                        altinnTransitService.findNewestEvent()
+                    )
+                publisher.publishEvent(AltinnProxyStateMachineEvent.ServiceAvailable(lastEventId))
             }
             if (response.statusCode.is4xxClientError || response.statusCode.is5xxServerError) {
                 publishServiceUnavailableEvent("$${response.statusCode} ${response.body}")

@@ -13,7 +13,7 @@ sealed class AltinnProxyStateMachineEvent {
     class PollingSucceeded : AltinnProxyStateMachineEvent()
     class ServiceUnavailable(val lastSyncedEvent: String) : AltinnProxyStateMachineEvent()
     class WaitForConnection(val lastSyncedEvent: String) : AltinnProxyStateMachineEvent()
-    class ServiceAvailable : AltinnProxyStateMachineEvent()
+    class ServiceAvailable(val lastSyncedEvent: String) : AltinnProxyStateMachineEvent()
     class WebhookValidated : AltinnProxyStateMachineEvent()
     class WebhookFailed : AltinnProxyStateMachineEvent()
     class WebhookReady(val cloudEventTime: OffsetDateTime) : AltinnProxyStateMachineEvent()
