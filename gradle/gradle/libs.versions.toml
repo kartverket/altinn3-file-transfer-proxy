@@ -1,11 +1,11 @@
 [versions]
-kotlin = "2.2.20"
+kotlin = "2.2.21"
 coroutines = "1.10.2"
-spring-boot = "3.5.6"
-jackson = "2.20.0"
+spring-boot = "3.5.7"
+jackson = "2.20.1"
 testcontainers = "1.21.3"
-flyway = "11.13.1"
-mockk = "1.14.5"
+flyway = "11.15.0"
+mockk = "1.14.6"
 
 [libraries]
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
@@ -17,17 +17,17 @@ jackson-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr
 spring-boot-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux", version.ref = "spring-boot" }
 spring-boot-data-jdbc = { module = "org.springframework.boot:spring-boot-starter-data-jdbc", version.ref = "spring-boot" }
 spring-boot-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
-spring-security-oauth2-jose = { module = "org.springframework.security:spring-security-oauth2-jose", version = "6.5.5" }
+spring-security-oauth2-jose = { module = "org.springframework.security:spring-security-oauth2-jose", version = "6.5.6" }
 spring-retry = { module = "org.springframework.retry:spring-retry", version = "2.0.12" }
 postgres = { module = "org.postgresql:postgresql", version = "42.7.8" }
-oracle = { module = "com.oracle.database.jdbc:ojdbc11", version = "23.9.0.25.07" }
+oracle = { module = "com.oracle.database.jdbc:ojdbc11", version = "23.26.0.0.0" }
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-postgres = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
 logstash = { module = "net.logstash.logback:logstash-logback-encoder", version = "8.1" }
 slf4j = { module = "org.slf4j:slf4j-api", version = "2.0.17" }
-logback = { module = "ch.qos.logback:logback-classic", version = "1.5.18" }
+logback = { module = "ch.qos.logback:logback-classic", version = "1.5.20" }
 detekt-klint = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version = "1.23.8" }
-micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version = "1.15.4" }
+micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version = "1.15.5" }
 
 # Test libs
 spring-boot-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
@@ -60,5 +60,5 @@ detekt-kotlin-analyzer = { id = "io.gitlab.arturbosch.detekt", version = "1.23.8
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-versions = { id = "com.github.ben-manes.versions", version = "0.52.0" }
-openapi-gen = { id = "org.openapi.generator", version = "7.15.0" }
+versions = { id = "com.github.ben-manes.versions", version = "0.53.0" }
+openapi-gen = { id = "org.openapi.generator", version = "7.17.0" }
