@@ -21,7 +21,7 @@ class AltinnHealthCheckService(
     lateinit var publisher: ApplicationEventPublisher
 
     @Profile("!poll")
-    @Scheduled(fixedRateString = "#{altinnHealthCheckProperties.interval}", initialDelay = 60000)
+    //@Scheduled(fixedRateString = "#{altinnHealthCheckProperties.interval}", initialDelay = 60000)
     fun checkAltinnHealth() {
         if (stateMachine.state == State.Initial || stateMachine.state == State.Synchronize) {
             return
