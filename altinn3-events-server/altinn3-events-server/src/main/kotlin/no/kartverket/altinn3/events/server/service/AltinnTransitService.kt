@@ -67,8 +67,8 @@ open class AltinnTransitService(
     fun startTransfer(fileOverview: FileOverview, fileBytes: ByteArray, onSuccess: () -> Unit) {
         transactionTemplate.execute {
             saveAltinnFil(fileOverview, fileBytes)
-            onSuccess()
         }
+        onSuccess()
     }
 
     fun completeFileTransfer(altinnFilOverview: AltinnFilOverview) {
@@ -82,16 +82,6 @@ open class AltinnTransitService(
     }
 
     private fun saveAltinnFil(fileOverview: FileOverview, fileBytes: ByteArray) {
-        if (!altinnServerConfig.persistAltinnFile) {
-            logger.info(
-                """
-                |Persisting files disabled. 
-                |Won't save file with fileTransferId: {}
-                """.trimMargin(),
-                fileOverview.fileTransferId
-            )
-            return
-        }
         val fileTransferId =
             requireNotNull(fileOverview.fileTransferId) { "fileTransferId is required in the file overview" }
 
