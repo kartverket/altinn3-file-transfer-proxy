@@ -41,7 +41,7 @@ testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.re
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 mockk-jvm = { module = "io.mockk:mockk-jvm", version.ref = "mockk" }
 spring-mockk = { module = "com.ninja-squad:springmockk", version = "4.0.2" }
-wiremock = { module = "org.wiremock.integrations:wiremock-spring-boot", version = "3.10.6" }
+wiremock = { module = "org.wiremock.integrations:wiremock-spring-boot", version = "4.0.6" }
 spring-test-client = { module = "io.rest-assured:spring-web-test-client", version = "5.5.6" }
 jdom-xml = { module = "org.jdom:jdom2", version = "2.0.6.1" }
 
