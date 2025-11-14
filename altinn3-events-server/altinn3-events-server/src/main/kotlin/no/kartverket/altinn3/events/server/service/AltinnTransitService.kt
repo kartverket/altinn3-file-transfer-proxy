@@ -10,7 +10,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.function.Supplier
 
 /**
@@ -74,8 +75,8 @@ open class AltinnTransitService(
     fun completeFileTransfer(altinnFilOverview: AltinnFilOverview) {
         altinnFilOverviewRepository.save(
             altinnFilOverview.copy(
-                modified = LocalDateTime.now(),
-                sent = LocalDateTime.now(),
+                modified = OffsetDateTime.now(ZoneOffset.UTC),
+                sent = OffsetDateTime.now(ZoneOffset.UTC),
                 transitStatus = TransitStatus.COMPLETED
             )
         )
