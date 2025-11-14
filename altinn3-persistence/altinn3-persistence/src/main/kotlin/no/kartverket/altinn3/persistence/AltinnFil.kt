@@ -3,14 +3,15 @@ package no.kartverket.altinn3.persistence
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Version
 import org.springframework.data.relational.core.mapping.Table
-import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.*
 
 @Table("altinn_fil")
 data class AltinnFil(
     @Id val id: UUID? = null,
     val payload: ByteArray,
-    val created: LocalDateTime = LocalDateTime.now(),
+    val created: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
     val fileOverviewId: UUID,
 ) {
     override fun equals(other: Any?): Boolean {
@@ -40,9 +41,9 @@ data class AltinnFilOverview(
     @Id
     val id: UUID? = null,
     val fileName: String? = null,
-    val received: LocalDateTime? = null,
-    val sent: LocalDateTime? = null,
-    val created: LocalDateTime?,
+    val received: OffsetDateTime? = null,
+    val sent: OffsetDateTime? = null,
+    val created: OffsetDateTime? = null,
     val fileTransferId: UUID?,
     val direction: Direction,
     val transitStatus: TransitStatus,
@@ -51,7 +52,7 @@ data class AltinnFilOverview(
     val resourceId: String?,
     val jsonPropertyList: String?,
     val checksum: String? = null,
-    val modified: LocalDateTime = LocalDateTime.now(),
+    val modified: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
     @Version
     @get:JvmName("getVersion")
     @set:JvmName("setVersion")

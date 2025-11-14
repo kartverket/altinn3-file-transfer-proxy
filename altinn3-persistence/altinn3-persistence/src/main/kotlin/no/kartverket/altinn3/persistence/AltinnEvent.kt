@@ -2,7 +2,8 @@ package no.kartverket.altinn3.persistence
 
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
-import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.*
 
 @Table("altinn_failed_event")
@@ -10,7 +11,7 @@ data class AltinnFailedEvent(
     val altinnId: UUID,
     val previousEventId: UUID,
     val altinnProxyState: String? = null,
-    val created: LocalDateTime = LocalDateTime.now(),
+    val created: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
     @Id
     val id: UUID? = null,
 )
@@ -23,10 +24,10 @@ data class AltinnEvent(
     val resourceinstance: UUID? = null,
     val specVersion: String? = null,
     val type: String? = null,
-    val time: LocalDateTime? = null,
+    val time: OffsetDateTime? = null,
     val resource: String? = null,
     val source: String? = null,
-    val received: LocalDateTime = LocalDateTime.now(),
+    val received: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
 ) {
 
     override fun equals(other: Any?): Boolean {
