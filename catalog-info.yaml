@@ -13,7 +13,7 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: Altinn3-motor
+  name: altinn3-motor
 spec:
   type: service
   owner: digibok
@@ -33,17 +33,20 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
-  name: Altinn3-persistence-database
+  name: altinn3-persistence-database
   title: Altinn-fil transit database
 spec:
   type: ""
+  owner: digibok
 
 ---
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
-  name: Altinn3-api
+  name: altinn3-api
 spec:
   type: openapi
   owner: digibok
   lifecycle: production
+  definition:
+    $text: ./specs/altinn-broker-v1.json
