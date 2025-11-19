@@ -1,10 +1,49 @@
-# nonk8s
-apiVersion: "backstage.io/v1alpha1"
-kind: "Component"
+apiVersion: backstage.io/v1alpha1
+kind: Component
 metadata:
-  name: "altinn3-proxy"
+  name: altinn3-proxy
   tags: []
+  title: Altinn3 integrasjon
 spec:
-  type: "experiment"
-  lifecycle: "experimental"
-  owner: "digibok"
+  type: service
+  lifecycle: experimental
+  owner: digibok
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: Altinn3-motor
+spec:
+  type: service
+  owner: digibok
+  lifecycle: experimental
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: altinn3-persistence
+spec:
+  type: service
+  owner: digibok
+  lifecycle: experimental
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: Altinn3-persistence-database
+  title: Altinn-fil transit database
+spec:
+  type: ""
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: Altinn3-api
+spec:
+  type: openapi
+  owner: digibok
+  lifecycle: production
