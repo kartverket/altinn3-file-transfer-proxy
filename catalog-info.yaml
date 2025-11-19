@@ -18,6 +18,9 @@ spec:
   type: service
   owner: digibok
   lifecycle: experimental
+  dependsOn:
+    - resource:default/grunnboksdatabasen
+    - resource:default/altinn3-persistence-database
 
 ---
 apiVersion: backstage.io/v1alpha1
@@ -28,13 +31,15 @@ spec:
   type: service
   owner: digibok
   lifecycle: experimental
+  dependsOn:
+    - resource:default/altinn3-persistence-database
 
 ---
 apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
   name: altinn3-persistence-database
-  title: Altinn-fil transit database
+  title: Altinn dokument transit database
 spec:
   type: database
   owner: digibok
@@ -50,3 +55,17 @@ spec:
   lifecycle: production
   definition:
     $text: ./specs/altinn-broker-v1.json
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: altinn3-events-server
+spec:
+  type: service
+  owner: digibok
+  lifecycle: experimental
+  consumesApis:
+    - altinn3-api
+  dependsOn:
+    - resource:default/altinn3-persistence-database
