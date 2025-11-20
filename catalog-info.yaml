@@ -24,22 +24,10 @@ spec:
 
 ---
 apiVersion: backstage.io/v1alpha1
-kind: Component
-metadata:
-  name: altinn3-persistence
-spec:
-  type: service
-  owner: digibok
-  lifecycle: experimental
-  dependsOn:
-    - resource:default/altinn3-persistence-database
-
----
-apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
-  name: altinn3-persistence-database
-  title: Altinn dokument transit database
+  name: altinn3-persistence
+  title: Altinn3 transit database
 spec:
   type: database
   owner: digibok
