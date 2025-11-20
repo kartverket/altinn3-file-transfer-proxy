@@ -42,7 +42,7 @@ spec:
   owner: digibok
   lifecycle: production
   definition:
-    $text: ./specs/altinn-broker-v1.json
+    $text: https://github.com/kartverket/altinn3-proxy/blob/main/specs/altinn-broker-v1.json
 
 ---
 apiVersion: backstage.io/v1alpha1
