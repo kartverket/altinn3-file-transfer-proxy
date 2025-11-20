@@ -20,7 +20,7 @@ spec:
   lifecycle: experimental
   dependsOn:
     - resource:default/grunnboksdatabasen
-    - resource:default/altinn3-persistence-database
+    - resource:default/altinn3-persistence
 
 ---
 apiVersion: backstage.io/v1alpha1
@@ -56,4 +56,4 @@ spec:
   consumesApis:
     - altinn3-api
   dependsOn:
-    - resource:default/altinn3-persistence-database
+    - resource:default/altinn3-persistence
