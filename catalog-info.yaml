@@ -57,3 +57,14 @@ spec:
     - altinn3-api
   dependsOn:
     - resource:default/altinn3-persistence
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: testkomponent-slett
+spec:
+  type: service
+  owner: digibok
+  lifecycle: production
+  system: grunnbok
