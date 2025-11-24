@@ -48,7 +48,7 @@ class EventLoader(
         return eventsClient.events.loadResourceEventTypeWithFileOverview(
             resource = resource,
             type = filteredTypes,
-            subject = "/organisation/$recipientOrgNr",
+            subject = "urn:altinn:organization:identifier-no:$recipientOrgNr",
             afterSupplier = afterSupplier
         )
     }
