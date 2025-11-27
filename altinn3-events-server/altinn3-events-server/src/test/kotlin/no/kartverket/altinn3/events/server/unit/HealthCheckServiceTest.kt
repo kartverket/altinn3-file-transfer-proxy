@@ -1,18 +1,12 @@
 package no.kartverket.altinn3.events.server.unit
 
 import io.mockk.*
-import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
-import no.kartverket.altinn3.events.server.configuration.HealthCheckProperties
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
 import no.kartverket.altinn3.events.server.domain.state.State
 import no.kartverket.altinn3.events.server.models.SideEffect
-import no.kartverket.altinn3.events.server.service.AltinnTransitService
-import no.kartverket.altinn3.events.server.service.HealthCheckService
-import no.kartverket.altinn3.events.server.service.StateMachine
+import no.kartverket.altinn3.events.server.service.*
 import org.junit.jupiter.api.BeforeEach
 import org.springframework.context.ApplicationEventPublisher
-import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
 import org.springframework.web.client.RestClient
 import kotlin.test.Test
 
@@ -23,8 +17,6 @@ class HealthCheckServiceTest {
     private lateinit var altinnTransitService: AltinnTransitService
     private lateinit var healthCheck: HealthCheckService
 
-    private lateinit var properties: HealthCheckProperties
-    private lateinit var altinnServerConfig: AltinnServerConfig
     private lateinit var stateMachine: StateMachine<State, AltinnProxyStateMachineEvent, SideEffect>
 
     @BeforeEach
@@ -35,9 +27,6 @@ class HealthCheckServiceTest {
         altinnTransitService = mockk()
         every { altinnTransitService.findNewestEvent() } returns "12345"
 
-        properties = mockk()
-        altinnServerConfig = mockk()
-        every { altinnServerConfig.webhookExternalUrl } returns "http://mocked-url.com"
         stateMachine = mockk(relaxed = true)
 
         healthCheck = HealthCheckService(
@@ -49,39 +38,37 @@ class HealthCheckServiceTest {
     }
 
     @Test
-    fun `checkHealth should publish ServiceAvailable event when health check is successful`() {
+    fun `checkHealth should publish ServiceAvailable event when health check is successful and up-count is 3`() {
         every { stateMachine.state } returns State.Poll
 
-        val res = mockk<RestClient.ResponseSpec>(relaxed = true)
-        every { restClient.get().uri(any<String>()).retrieve() } returns res
-        every { res.onStatus(any(), any()) } returns res
+        val res = mockk<RestClient.ResponseSpec>()
+        every { restClient.get() } returns mockk {
+            every { retrieve() } returns res
+        }
+        every { res.body(DigibokHealthResponse::class.java) } returns DigibokHealthResponse(
+            Altinn3ProxyStatus("UP")
+        )
 
-        val responseEntity = ResponseEntity<Void>(HttpStatus.OK)
-        every { res.toBodilessEntity() } returns responseEntity
-
-        healthCheck.checkHealth()
+        repeat(3) { healthCheck.checkHealth() }
 
         verify {
-            healthCheck.publisher.publishEvent(
+            applicationEventPublisher.publishEvent(
                 ofType(AltinnProxyStateMachineEvent.ServiceAvailable::class)
             )
         }
     }
 
     @Test
-    fun `checkHealth should publish WaitForConnection event when an exception occurs`() {
-        val res = mockk<RestClient.ResponseSpec>(relaxed = true)
-        every { restClient.get().uri(any<String>()).retrieve() } returns res
-        every { res.onStatus(any(), any()) } answers {
-            // Simulate that the status matches and the error handler is called
-            val errorHandler = secondArg<RestClient.ResponseSpec.ErrorHandler>()
-            errorHandler.handle(mockk(relaxed = true), mockk(relaxed = true))
-            res
-        }
+    fun `checkHealth should publish WaitForConnection event when status is DOWN and state is not Poll`() {
+        every { stateMachine.state } returns State.SetupWebhook
 
-        val responseEntity =
-            ResponseEntity<Void>(HttpStatus.NOT_FOUND)
-        every { res.toBodilessEntity() } returns responseEntity
+        val res = mockk<RestClient.ResponseSpec>()
+        every { restClient.get() } returns mockk {
+            every { retrieve() } returns res
+        }
+        every { res.body(DigibokHealthResponse::class.java) } returns DigibokHealthResponse(
+            Altinn3ProxyStatus("DOWN")
+        )
 
         val lastEventId = "event-id"
         every { altinnTransitService.findNewestEvent() } returns lastEventId
@@ -92,6 +79,60 @@ class HealthCheckServiceTest {
             applicationEventPublisher.publishEvent(
                 ofType(AltinnProxyStateMachineEvent.WaitForConnection::class)
             )
+        }
+    }
+
+    @Test
+    fun `checkHealth should not publish ServiceAvailable before 3 consecutive UP statuses`() {
+        every { stateMachine.state } returns State.Poll
+
+        val res = mockk<RestClient.ResponseSpec>()
+        every { restClient.get() } returns mockk {
+            every { retrieve() } returns res
+        }
+        every { res.body(DigibokHealthResponse::class.java) } returns DigibokHealthResponse(
+            Altinn3ProxyStatus("UP")
+        )
+
+        repeat(2) { healthCheck.checkHealth() }
+
+        verify(exactly = 0) {
+            applicationEventPublisher.publishEvent(
+                ofType(AltinnProxyStateMachineEvent.ServiceAvailable::class)
+            )
+        }
+    }
+
+    @Test
+    fun `checkHealth should not publish ServiceAvailable when status is UP but state is not Poll`() {
+        every { stateMachine.state } returns State.SetupWebhook
+
+        val res = mockk<RestClient.ResponseSpec>()
+        every { restClient.get() } returns mockk {
+            every { retrieve() } returns res
+        }
+        every { res.body(DigibokHealthResponse::class.java) } returns DigibokHealthResponse(
+            Altinn3ProxyStatus("UP")
+        )
+
+        repeat(5) { healthCheck.checkHealth() }
+
+        verify(exactly = 0) {
+            applicationEventPublisher.publishEvent(
+                ofType(AltinnProxyStateMachineEvent.ServiceAvailable::class)
+            )
+        }
+    }
+
+    @Test
+    fun `checkHealth should not publish any events when an exception occurs`() {
+        every { stateMachine.state } returns State.Poll
+        every { restClient.get() } throws RuntimeException("Failed")
+
+        healthCheck.checkHealth()
+
+        verify(exactly = 0) {
+            applicationEventPublisher.publishEvent(any())
         }
     }
 }

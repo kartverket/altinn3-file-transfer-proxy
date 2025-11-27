@@ -1,6 +1,5 @@
 package no.kartverket.altinn3.events.server.configuration
 
-import no.kartverket.altinn3.events.server.routes.healthCheckRouter
 import no.kartverket.altinn3.events.server.service.HealthCheckService
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.support.beans
@@ -9,23 +8,24 @@ import org.springframework.web.client.RestClient
 
 val healthCheckConfig = beans {
     bean<HealthCheckService> {
-        val altinnServerConfig = ref<AltinnServerConfig>()
-        val restClient = RestClient.builder().baseUrl(altinnServerConfig.webhookExternalUrl!!).build()
+        val properties = ref<HealthCheckProperties>()
+        val restClient = RestClient.builder().baseUrl(properties.url).build()
         HealthCheckService(
             ref(),
             ref(),
-            restClient
+            restClient,
         )
     }
-    bean(::healthCheckRouter)
 }
+
 
 @Component
 @ConfigurationProperties(prefix = "healthcheck")
 class HealthCheckProperties {
     companion object {
-        const val FIVE_SECONDS: Long = 5000
+        const val THIRTY_SECONDS: Long = 30000
     }
 
-    var interval: Long = FIVE_SECONDS
+    var interval: Long = THIRTY_SECONDS
+    var url: String = ""
 }
