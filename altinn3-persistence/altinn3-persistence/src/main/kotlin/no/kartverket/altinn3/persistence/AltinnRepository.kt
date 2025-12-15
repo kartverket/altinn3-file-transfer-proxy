@@ -13,11 +13,26 @@ interface AltinnFailedEventRepository : CrudRepository<AltinnFailedEvent, UUID> 
 interface AltinnFilOverviewRepository : CrudRepository<AltinnFilOverview, UUID> {
     fun findByFileTransferId(fileReference: UUID): AltinnFilOverview?
 
+
     @Query(
         "select * from altinn_fil_overview " +
-            "where transit_status = :transitStatus " +
-            "and direction = :direction " +
-            "order by created",
+                "where transit_status = :transitStatus " +
+                "and direction = :direction " +
+                "and fagsystemreferanse = :fagsystemreferanse " +
+                "order by created " +
+                "limit 1",
+    )
+    fun findCompletedTransitsByFagsystemreferanse(
+        transitStatus: TransitStatus = TransitStatus.COMPLETED,
+        direction: Direction = Direction.OUT,
+        fagsystemreferanse: String? = null,
+    ): AltinnFilOverview?
+
+    @Query(
+        "select * from altinn_fil_overview " +
+                "where transit_status = :transitStatus " +
+                "and direction = :direction " +
+                "order by created",
     )
     fun findAllByTransitStatus(
         transitStatus: TransitStatus = TransitStatus.NEW,
@@ -25,6 +40,8 @@ interface AltinnFilOverviewRepository : CrudRepository<AltinnFilOverview, UUID> 
     ): List<AltinnFilOverview>
 
     fun existsByFileTransferId(fileReference: UUID): Boolean
+
+    fun existsByFagsystemreferanse(fagsystemReferanse: String?): Boolean
 }
 
 interface AltinnFilRepository : CrudRepository<AltinnFil, UUID> {

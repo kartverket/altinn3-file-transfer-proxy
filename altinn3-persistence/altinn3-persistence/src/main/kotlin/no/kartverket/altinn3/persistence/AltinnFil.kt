@@ -53,6 +53,7 @@ data class AltinnFilOverview(
     val jsonPropertyList: String?,
     val checksum: String? = null,
     val modified: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
+    val fagsystemreferanse: String? = null,
     @Version
     @get:JvmName("getVersion")
     @set:JvmName("setVersion")

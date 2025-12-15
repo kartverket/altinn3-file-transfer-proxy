@@ -2,7 +2,7 @@ spring:
   flyway:
     enabled: false
   datasource:
-    cache:
+    transit:
       url: jdbc:postgresql://localhost:5432/psdb
       hikari:
         username: usr
