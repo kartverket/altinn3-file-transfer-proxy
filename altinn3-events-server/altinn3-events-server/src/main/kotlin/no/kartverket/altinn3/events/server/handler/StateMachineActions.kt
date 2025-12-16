@@ -51,10 +51,10 @@ class StateMachineActions(
         }
     }
 
-    fun onServiceAvailableAfterUnavailability(lastSyncedEvent: String) {
+    fun onServiceAvailableAfterUnavailability() {
         Scopes.altinnProxyScope.launch {
             launch {
-                startPolling(lastSyncedEvent)
+                startPolling()
             }
             runCatching {
                 altinnWebhookInitializer.deleteSubscriptions()
@@ -79,12 +79,10 @@ class StateMachineActions(
         }
     }
 
-    fun onPollRequestedEvent(
-        lastSyncedEvent: String,
-    ) {
+    fun onPollRequestedEvent() {
         Scopes.altinnProxyScope.launch {
             runCatching {
-                startPolling(lastSyncedEvent)
+                startPolling()
             }.onFailure {
                 logger.error("")
                 logger.error(it.message)
@@ -93,9 +91,9 @@ class StateMachineActions(
         }
     }
 
-    private suspend fun startPolling(lastSyncedEvent: String) {
+    private suspend fun startPolling() {
         runCatching {
-            altinnSynchronizer.poll(lastSyncedEvent)
+            altinnSynchronizer.poll()
         }.onFailure {
             val eventToPublish = when (it) {
                 is HandlePollEventFailedException -> {
@@ -137,10 +135,10 @@ class StateMachineActions(
         }
     }
 
-    fun onSetupWebhooksRequested(lastSyncedEvent: String) {
+    fun onSetupWebhooksRequested() {
         Scopes.altinnProxyScope.launch {
             launch {
-                startPolling(lastSyncedEvent)
+                startPolling()
             }
             launch {
                 altinnWebhookInitializer.deleteSubscriptions()

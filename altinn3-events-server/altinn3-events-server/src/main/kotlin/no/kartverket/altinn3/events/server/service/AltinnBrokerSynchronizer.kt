@@ -1,14 +1,11 @@
 package no.kartverket.altinn3.events.server.service
 
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
-import no.kartverket.altinn3.events.server.exceptions.HandlePollEventFailedException
 import no.kartverket.altinn3.events.server.exceptions.HandleSyncEventFailedException
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
 import no.kartverket.altinn3.events.server.models.EventWithFileOverview
-import no.kartverket.altinn3.models.CloudEvent
 import no.kartverket.altinn3.persistence.AltinnFailedEventRepository
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -16,7 +13,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationEventPublisher
 import java.time.OffsetDateTime
 import java.util.*
-import kotlin.time.Duration
 
 @EnableConfigurationProperties(AltinnServerConfig::class)
 class AltinnBrokerSynchronizer(
@@ -25,6 +21,7 @@ class AltinnBrokerSynchronizer(
     private val applicationEventPublisher: ApplicationEventPublisher,
     private val altinnConfig: AltinnServerConfig,
     private val failedEventRepository: AltinnFailedEventRepository,
+    private val altinnService: AltinnService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(javaClass)
     var eventRecievedInWebhooksCreatedAt: OffsetDateTime? = null
@@ -36,7 +33,7 @@ class AltinnBrokerSynchronizer(
         val startId = failedEvents.first().previousEventId
         val failedEventsIds = failedEvents.map { it.altinnId.toString() }
 
-        return buildSet<EventWithFileOverview> {
+        return buildSet {
             eventLoader
                 .fetchAndMapEventsByResource(altinnConfig.recipientId) {
                     startId.toString()
@@ -108,80 +105,7 @@ class AltinnBrokerSynchronizer(
         )
     }
 
-    suspend fun poll(startEventId: String = "0") = coroutineScope {
-        // Nb. Altinn sin rekkefølge ser ikke ut til å være basert på "time"-feltet, så
-        // det kan være at det blir overlapping på noen events i sync og poll.
-        // Det har liten praktisk betydning for oss så lenge vi sorterer listen,
-        // men det kan se litt rart ut i loggen hvis man ikke er klar over det.
-        logger.info("Starting polling from eventId $startEventId")
-        val lastSyncedEventPerWebhook = mutableMapOf<String, CloudEvent>()
-        var poll = true
-
-        while (poll) {
-            logger.debug("Polling Altinn")
-            val eventsFromAllResources = eventLoader.fetchAndMapEventsByResource(altinnConfig.recipientId) { resource ->
-                lastSyncedEventPerWebhook[resource]?.id ?: startEventId
-            }
-                .sortedBy { it.fileOverview.created }
-
-            // Hvis staten er Webhook og det ikke er flere events å prosessere, stopper polling
-            if (eventRecievedInWebhooksCreatedAt != null && eventsFromAllResources.isEmpty()) {
-                logger.info("Webhook ready and no more events to process. Stopping polling.")
-                poll = false
-                applicationEventPublisher.publishEvent(
-                    AltinnProxyStateMachineEvent.PollingSucceeded()
-                )
-                continue
-            }
-
-            // Vi kan bare forkaste resten dersom time er større eller
-            // lik eventRecievedInWebhooksCreatedAt, siden listen er sortert
-            val lastIndex = eventsFromAllResources.indexOfFirst {
-                eventRecievedInWebhooksCreatedAt != null && it.cloudEvent.time!! >= eventRecievedInWebhooksCreatedAt
-            }
-                .takeUnless { it == -1 }
-                ?: eventsFromAllResources.lastIndex
-
-            var lastSuccessfullId = startEventId
-
-            eventsFromAllResources
-                .withIndex()
-                .take(lastIndex + 1)
-                .forEach { (_, event) ->
-                    logger.debug(
-                        "Polling event with ID: {}, resourceinstance: {} ",
-                        event.cloudEvent.id, event.cloudEvent.resourceinstance
-                    )
-
-                    if (
-                        eventRecievedInWebhooksCreatedAt != null &&
-                        event.cloudEvent.time!! >= eventRecievedInWebhooksCreatedAt
-                    ) {
-                        logger.info("Polling now replaced by webhook. Stopping polling")
-                        poll = false
-                        applicationEventPublisher.publishEvent(
-                            AltinnProxyStateMachineEvent.PollingSucceeded()
-                        )
-                    } else {
-                        val eventId = requireNotNull(event.cloudEvent.id)
-                        cloudEventHandler.tryHandle(
-                            event,
-                            onSuccess = {
-                                requireNotNull(event.cloudEvent.resource).let {
-                                    lastSuccessfullId = eventId
-                                    lastSyncedEventPerWebhook[it] = event.cloudEvent
-                                }
-                            },
-                            onFailure = {
-                                throw HandlePollEventFailedException(
-                                    pollFromEventId = lastSuccessfullId,
-                                    failedEventID = eventId,
-                                )
-                            }
-                        )
-                    }
-                }
-            delay(Duration.parse(altinnConfig.pollAltinnInterval))
-        }
+    suspend fun poll() = coroutineScope {
+        altinnService.tryPoll()
     }
 }

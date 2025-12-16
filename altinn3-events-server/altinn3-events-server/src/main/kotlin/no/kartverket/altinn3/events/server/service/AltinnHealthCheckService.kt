@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.ApplicationEventPublisherAware
 import org.springframework.context.annotation.Profile
-import org.springframework.scheduling.annotation.Scheduled
 
 class AltinnHealthCheckService(
     private val altinnServerConfig: AltinnServerConfig,
@@ -28,7 +27,7 @@ class AltinnHealthCheckService(
         }
         try {
             val response =
-                brokerClient.healthCheckViaFileTranser(resourceId = altinnServerConfig.resourceId)
+                brokerClient.healthCheckViaFileTransfer(resourceId = altinnServerConfig.resourceId)
             if (stateMachine.state == State.Poll && response.statusCode.is2xxSuccessful) {
                 val lastEventId =
                     // TODO: Hva skjer hvis denne får null, og spinnes det ny schedulering opp på en ny tråd? Shutdown?

@@ -176,18 +176,15 @@ private fun initializeStateMachine(
             SideEffect.SyncRequested -> actions.onSyncRequested()
             SideEffect.SyncFailed -> actions.onCriticalError(it.fromState)
             SideEffect.WaitForConnection -> {
-                val altinnProxyStateMachineEvent = it.event as AltinnProxyStateMachineEvent.ServiceUnavailable
-                actions.onPollRequestedEvent(altinnProxyStateMachineEvent.lastSyncedEvent)
+                actions.onPollRequestedEvent()
             }
 
             SideEffect.ServiceAvailableAgainAfterUnavailability -> {
-                val altinnProxyStateMachineEvent = it.event as AltinnProxyStateMachineEvent.ServiceAvailable
-                actions.onServiceAvailableAfterUnavailability(altinnProxyStateMachineEvent.lastSyncedEvent)
+                actions.onServiceAvailableAfterUnavailability()
             }
 
             SideEffect.PollRequested -> {
-                val altinnProxyStateMachineEvent = it.event as AltinnProxyStateMachineEvent.SyncSucceeded
-                actions.onPollRequestedEvent(altinnProxyStateMachineEvent.lastSyncedEvent)
+                actions.onPollRequestedEvent()
             }
 
             SideEffect.PollFailed -> {
@@ -196,8 +193,7 @@ private fun initializeStateMachine(
             }
 
             SideEffect.WebhookRequested -> {
-                val altinnProxyStateMachineEvent = it.event as AltinnProxyStateMachineEvent.SyncSucceeded
-                actions.onSetupWebhooksRequested(altinnProxyStateMachineEvent.lastSyncedEvent)
+                actions.onSetupWebhooksRequested()
             }
 
             SideEffect.WebbhookFailed -> actions.onCriticalError(it.fromState)
@@ -207,7 +203,7 @@ private fun initializeStateMachine(
             }
 
             SideEffect.CriticalError -> {
-                val altinnProxyStateMachineEvent = it.event as AltinnProxyStateMachineEvent.CriticalError
+                it.event as AltinnProxyStateMachineEvent.CriticalError
                 actions.onCriticalError(it.fromState, it.event.throwable)
             }
         }

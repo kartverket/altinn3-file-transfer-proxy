@@ -8,11 +8,11 @@ import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.domain.AltinnEventType
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
 import no.kartverket.altinn3.events.server.domain.state.State
-import no.kartverket.altinn3.events.server.exceptions.HandlePollEventFailedException
 import no.kartverket.altinn3.events.server.exceptions.HandleSyncEventFailedException
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
 import no.kartverket.altinn3.events.server.models.EventWithFileOverview
 import no.kartverket.altinn3.events.server.service.AltinnBrokerSynchronizer
+import no.kartverket.altinn3.events.server.service.AltinnService
 import no.kartverket.altinn3.events.server.service.EventLoader
 import no.kartverket.altinn3.persistence.AltinnFailedEvent
 import no.kartverket.altinn3.persistence.AltinnFailedEventRepository
@@ -29,12 +29,14 @@ class AltinnBrokerSynchronizerTest {
     private val publisher = mockk<ApplicationEventPublisher>(relaxed = true)
     private val altinnConfig = mockk<AltinnServerConfig>(relaxed = true)
     private val failedEventRepository = mockk<AltinnFailedEventRepository>(relaxed = true)
+    private val altinnService = mockk<AltinnService>(relaxed = true)
     private val synchronizer = AltinnBrokerSynchronizer(
         eventLoader,
         cloudEventHandler,
         publisher,
         altinnConfig,
         failedEventRepository,
+        altinnService
     )
 
     @BeforeEach
@@ -92,32 +94,11 @@ class AltinnBrokerSynchronizerTest {
     }
 
     @Test
-    fun `poll() - runs until end event is reached and publishes PollingStartedEvent and PollingReachedEndEvent`() =
+    fun `poll() - check that AltinnService is called`() =
         runTest {
-            val cloudEvent1 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
-            val cloudEvent2 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
-
-            every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(
-                cloudEvent1,
-                cloudEvent2
-            )
-            every { altinnConfig.pollAltinnInterval } returns "1s"
-
-            coEvery {
-                cloudEventHandler.handle(any())
-            } returns Unit
-
-            synchronizer.eventRecievedInWebhooksCreatedAt = cloudEvent2.cloudEvent.time
+            coEvery { altinnService.tryPoll() } just Runs
             synchronizer.poll()
-
-            coVerify(exactly = 1) { cloudEventHandler.tryHandle<Unit>(cloudEvent1, any(), any()) }
-            coVerify(exactly = 0) { cloudEventHandler.tryHandle<Unit>(cloudEvent2, any(), any()) }
-
-            val pollingEndEvent = slot<AltinnProxyStateMachineEvent.PollingSucceeded>()
-
-            verify {
-                publisher.publishEvent(capture(pollingEndEvent))
-            }
+            coVerify(exactly = 1) { altinnService.tryPoll() }
         }
 
     @Test
@@ -142,32 +123,6 @@ class AltinnBrokerSynchronizerTest {
             synchronizer.sync("startEventId123")
         }.also { ex ->
             assertEquals("startEventId123", ex.lastSuccessfulEventId)
-        }
-    }
-
-    @Test
-    fun `poll() - onError triggers HandlePollEventFailedException with correct eventId`() = runTest {
-        val event: EventWithFileOverview =
-            createCloudEvent(AltinnEventType.PUBLISHED).copy(id = "pollEventId").createEventWithFileOverview()
-
-        every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(event)
-        every { altinnConfig.pollAltinnInterval } returns "1s"
-
-        coEvery {
-            cloudEventHandler.tryHandle(
-                any<EventWithFileOverview>(),
-                any<suspend () -> Unit>(),
-                any<suspend (Throwable) -> Unit>()
-            )
-        } coAnswers {
-            val onErrorLambda = thirdArg<suspend (Exception) -> Unit>()
-            onErrorLambda(RuntimeException("Simulated poll failure"))
-        }
-
-        assertThrows<HandlePollEventFailedException> {
-            synchronizer.poll("myPollStartId")
-        }.also { ex ->
-            assertEquals("myPollStartId", ex.pollFromEventId)
         }
     }
 }

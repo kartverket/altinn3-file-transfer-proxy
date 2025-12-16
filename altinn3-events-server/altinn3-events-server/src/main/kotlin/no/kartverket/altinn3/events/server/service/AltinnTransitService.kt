@@ -1,9 +1,7 @@
 package no.kartverket.altinn3.events.server.service
 
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
-import no.kartverket.altinn3.events.server.mappers.toAltinnEventEntity
 import no.kartverket.altinn3.events.server.mappers.toAltinnFilOverview
-import no.kartverket.altinn3.events.server.models.EventWithFileOverview
 import no.kartverket.altinn3.models.FileOverview
 import no.kartverket.altinn3.persistence.*
 import org.slf4j.Logger
@@ -12,6 +10,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.util.*
 import java.util.function.Supplier
 
 /**
@@ -42,23 +41,21 @@ open class AltinnTransitService(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(javaClass)
 
-    fun prepareForFileTransfer(event: EventWithFileOverview) {
-        transactionTemplate.execute {
-            val altinnEvent = event.cloudEvent.toAltinnEventEntity()
-            val overview = event.fileOverview.toAltinnFilOverview()
-            val fileTransferId = requireNotNull(overview.fileTransferId)
+    fun prepareForFileTransfer(fileOverview: FileOverview, altinnEvent: AltinnEvent? = null): UUID {
+        val fileTransferId = requireNotNull(fileOverview.fileTransferId)
 
-            if (!altinnFilOverviewRepository.existsByFileTransferId(fileTransferId)) {
-                altinnFilOverviewRepository.save(overview)
-                logger.info(
-                    "Created and prepared file overview for file reference: {} ",
-                    event.cloudEvent.resourceinstance
-                )
-            } else {
-                logger.warn("AltinnFilOverview with fileReference: {} already exists", overview.fileTransferId)
-            }
-            saveAltinnEvent(altinnEvent)
+        if (altinnFilOverviewRepository.existsByFileTransferId(fileTransferId)) {
+            logger.warn("AltinnFilOverview with fileTransferId: {} already exists", fileTransferId)
+        } else {
+            altinnFilOverviewRepository.save(fileOverview.toAltinnFilOverview())
+            logger.info(
+                "Created and prepared file overview for fileTransferId: {} ", fileTransferId
+            )
         }
+
+        saveAltinnEvent(altinnEvent, fileTransferId)
+
+        return fileTransferId
     }
 
     fun findNewestEvent(): String? {
@@ -96,16 +93,19 @@ open class AltinnTransitService(
             fileOverviewId = altinnFilOverviewId
         )
 
-        logger.debug("Trying to save file with fileTransferId: {}", fileTransferId)
-        altinnFilRepository.save(incomingFile)
-        logger.info("Saved altinn fil with file reference: {} ", fileTransferId)
+        if (altinnFilRepository.findByFileOverviewId(altinnFilOverviewId) != null) {
+            logger.warn("AltinnFil with overviewId: {} already exists", altinnFilOverviewId)
+        } else {
+            logger.debug("Trying to save file with fileTransferId: {}", fileTransferId)
+            altinnFilRepository.save(incomingFile)
+            logger.info("Saved altinn fil with file reference: {} ", fileTransferId)
+        }
     }
 
-    fun saveAltinnEvent(altinnEvent: AltinnEvent) {
-        if (!altinnServerConfig.persistCloudEvent)
-            return
+    fun saveAltinnEvent(altinnEvent: AltinnEvent? = null, fileTransferId: UUID) {
+        if (!altinnServerConfig.persistCloudEvent || altinnEvent == null) return
 
-        if (!altinnEventRepository.existsByAltinnId(altinnEvent.altinnId)) {
+        if (altinnEventRepository.findByResourceinstance(fileTransferId) == null) {
             altinnEventRepository.save(altinnEvent).also { savedResult ->
                 logger.info(
                     "Saved altinn event id: {} with resourceinstance: {}",

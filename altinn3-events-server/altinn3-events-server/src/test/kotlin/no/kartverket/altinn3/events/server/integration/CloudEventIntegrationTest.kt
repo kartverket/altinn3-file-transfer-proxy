@@ -23,6 +23,7 @@ import no.kartverket.altinn3.events.server.handler.CloudEventHandler
 import no.kartverket.altinn3.events.server.interfaces.WebhookAvailabilityStatus
 import no.kartverket.altinn3.events.server.models.EventWithFileOverview
 import no.kartverket.altinn3.events.server.service.AltinnBrokerSynchronizer
+import no.kartverket.altinn3.events.server.service.AltinnService
 import no.kartverket.altinn3.events.server.service.EventLoader
 import no.kartverket.altinn3.models.CloudEvent
 import no.kartverket.altinn3.persistence.AltinnFailedEvent
@@ -88,6 +89,7 @@ class WireMockInitializer : ApplicationContextInitializer<ConfigurableApplicatio
         "altinn.persist-cloud-event=true",
         "altinn.persist-altinn-file=true",
         "altinn.recipient-id=123456789",
+        "altinn.resource-id=kv_devtest",
         "altinn.send-response=true",
         "server.port=8181",
         "altinn.webhook-external-url=http://127.0.0.1:8181",
@@ -135,9 +137,31 @@ class CloudEventIntegrationTest {
     }
 
     @Test
-    fun `Should save files when recieving cloud events to webhook`() = runTest {
+    fun `Should save files when receiving cloud events to webhook`() = runTest {
         val webhook = webhooks[0]
         val publishedEvent = createCloudEvent(AltinnEventType.PUBLISHED)
+
+        configureFor(WIREMOCK_PORT)
+        stubFor(
+            get(urlPathTemplate("/broker/api/v1/filetransfer"))
+                .withQueryParam("resourceId", equalTo("kv_devtest"))
+                .withQueryParam("status", equalTo("Published"))
+                .withQueryParam("orderAscending", equalTo("true"))
+                .withQueryParam("role", equalTo("Recipient"))
+                .willReturn(
+                    aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(
+                            """
+                        [
+                          "11111111-1111-1111-1111-111111111111",
+                          "${publishedEvent.resourceinstance}"
+                        ]
+                        """.trimIndent()
+                        )
+                )
+        )
 
         waitForAvailableWebhooks()
 
@@ -186,16 +210,21 @@ class CloudEventIntegrationTest {
                 .willReturn(serverError())
         )
 
-        webTestClient.post()
-            .uri("/$webhook")
-            .contentType(CLOUDEVENTS_JSON)
-            .bodyValue(publishedEvent.toJson())
-            .exchange()
-            .expectStatus().is5xxServerError
+        try {
+            webTestClient.post()
+                .uri("/$webhook")
+                .contentType(CLOUDEVENTS_JSON)
+                .bodyValue(publishedEvent.toJson())
+                .exchange()
+                .expectStatus().is5xxServerError
 
-        val persistedFile = altinnFilRepository.findByFileOverviewId(resourceId)
+            val persistedFile = altinnFilRepository.findByFileOverviewId(resourceId)
 
-        assertThat(persistedFile).isNull()
+            assertThat(persistedFile).isNull()
+        } finally {
+            resetToDefault()
+        }
+
     }
 
     suspend fun waitForAvailableWebhooks() = coroutineScope {
@@ -214,13 +243,15 @@ class CloudEventIntegrationTest {
         val eventLoader: EventLoader = mockk(relaxed = true)
         val applicationEventPublisher: ApplicationEventPublisher = mockk(relaxed = true)
         val cloudEventHandler: CloudEventHandler = mockk(relaxed = true)
+        val altinnService: AltinnService = mockk(relaxed = true)
         val brokerSynchronizer by lazy {
             AltinnBrokerSynchronizer(
                 eventLoader,
                 cloudEventHandler,
                 applicationEventPublisher,
                 altinnConfig,
-                failedEventRepository
+                failedEventRepository,
+                altinnService
             )
         }
 

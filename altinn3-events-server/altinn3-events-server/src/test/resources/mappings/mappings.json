@@ -123,6 +123,33 @@
     },
     {
       "request": {
+        "method": "GET",
+        "urlPathTemplate": "/broker/api/v1/filetransfer",
+        "queryParameters": {
+          "resourceId": {
+            "equalTo": "kv_devtest"
+          },
+          "status": {
+            "equalTo": "Published"
+          },
+          "orderAscending": {
+            "equalTo": "true"
+          },
+          "role": {
+            "equalTo": "Recipient"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "bodyFileName": "filetransfer-ids.json"
+      }
+    },
+    {
+      "request": {
         "method": "POST",
         "urlPathPattern": ".*/upload"
       },

@@ -54,7 +54,7 @@ class AltinnHealthCheckServiceTest {
         every { stateMachine.state } returns State.Poll
 
         val responseEntity = ResponseEntity<List<UUID>>(HttpStatus.OK)
-        every { brokerClient.healthCheckViaFileTranser(any<String>()) } returns responseEntity
+        every { brokerClient.healthCheckViaFileTransfer(any<String>()) } returns responseEntity
 
         altinnHealthCheck.checkAltinnHealth()
 
@@ -70,7 +70,7 @@ class AltinnHealthCheckServiceTest {
         every { stateMachine.state } returns State.PollAndWebhook
 
         val responseEntity = ResponseEntity<List<UUID>>(HttpStatus.BAD_REQUEST)
-        every { brokerClient.healthCheckViaFileTranser(any<String>()) } returns responseEntity
+        every { brokerClient.healthCheckViaFileTransfer(any<String>()) } returns responseEntity
 
         altinnHealthCheck.checkAltinnHealth()
 
@@ -83,7 +83,7 @@ class AltinnHealthCheckServiceTest {
 
     @Test
     fun `checkHealth should publish WaitForConnection event when an exception occurs`() {
-        every { brokerClient.healthCheckViaFileTranser(any<String>()) } throws Exception()
+        every { brokerClient.healthCheckViaFileTransfer(any<String>()) } throws Exception()
 
         altinnHealthCheck.checkAltinnHealth()
 
