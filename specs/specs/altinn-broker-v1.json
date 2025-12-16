@@ -309,6 +309,20 @@
               "type": "string",
               "format": "date-time"
             }
+          },
+          {
+            "name": "orderAscending",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/RoleExt"
+            }
           }
         ],
         "responses": {
@@ -1449,7 +1463,7 @@
             "nullable": true
           }
         },
-        "additionalProperties": {}
+        "additionalProperties": { }
       },
       "RecipientFileTransferStatusDetailsExt": {
         "type": "object",
@@ -1562,6 +1576,13 @@
         },
         "additionalProperties": false,
         "description": "A model representing the extended resource properties unique for the broker service."
+      },
+      "RoleExt": {
+        "enum": [
+          "Recipient",
+          "Sender"
+        ],
+        "type": "string"
       },
       "ServiceOwnerInitializeExt": {
         "required": [
