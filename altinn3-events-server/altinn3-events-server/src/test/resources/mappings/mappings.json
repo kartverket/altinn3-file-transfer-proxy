@@ -127,7 +127,7 @@
         "urlPathTemplate": "/broker/api/v1/filetransfer",
         "queryParameters": {
           "resourceId": {
-            "equalTo": "kv_devtest"
+            "matches": "^(kv_devtest|test)$"
           },
           "status": {
             "equalTo": "Published"
