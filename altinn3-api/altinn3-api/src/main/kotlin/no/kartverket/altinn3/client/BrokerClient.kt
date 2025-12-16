@@ -1,9 +1,9 @@
 package no.kartverket.altinn3.client
 
 import no.kartverket.altinn3.broker.apis.FileTransferApi
-import no.kartverket.altinn3.models.FileOverview
-import no.kartverket.altinn3.models.FileTransferInitialize
+import no.kartverket.altinn3.models.*
 import org.springframework.http.HttpStatusCode
+import java.time.OffsetDateTime
 import java.util.*
 
 class ConfirmDownloadFailedException(message: String, val statusCode: HttpStatusCode) : RuntimeException(message)
@@ -41,7 +41,26 @@ class BrokerClient(
     fun initializeFileTransfer(fileTransferInitialize: FileTransferInitialize) =
         file.brokerApiV1FiletransferPost(fileTransferInitialize)
 
-    fun healthCheckViaFileTranser(resourceId: String) =
+    fun healthCheckViaFileTransfer(resourceId: String) =
         file.brokerApiV1FiletransferGetWithHttpInfo(resourceId = resourceId)
+
+    fun getFileTransfers(
+        resourceId: String? = null,
+        status: FileTransferStatusNullable? = null,
+        recipientStatus: RecipientFileTransferStatusNullable? = null,
+        from: OffsetDateTime? = null,
+        to: OffsetDateTime? = null,
+        orderAscending: Boolean? = null,
+        role: Role? = null,
+    ): List<UUID> =
+        file.brokerApiV1FiletransferGet(
+            resourceId = resourceId,
+            status = status,
+            recipientStatus = recipientStatus,
+            from = from,
+            to = to,
+            orderAscending = orderAscending,
+            role = role,
+        )
 }
 

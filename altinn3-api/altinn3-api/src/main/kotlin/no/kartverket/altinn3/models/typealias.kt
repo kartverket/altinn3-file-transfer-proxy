@@ -8,3 +8,6 @@ typealias FileStatusDetails = FileTransferStatusDetailsExt
 typealias FileTransferStatusDetails = FileTransferStatusDetailsExt
 typealias FileTransferInitialize = FileTransferInitalizeExt
 typealias FileTransferStatus = FileTransferStatusExt
+typealias FileTransferStatusNullable = FileTransferStatusExtNullable
+typealias RecipientFileTransferStatusNullable = RecipientFileTransferStatusExtNullable
+typealias Role = RoleExt
