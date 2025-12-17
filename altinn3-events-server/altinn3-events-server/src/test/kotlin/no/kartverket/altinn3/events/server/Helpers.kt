@@ -24,9 +24,6 @@ import java.util.stream.Stream
 private class CloudEventSerializer : JsonSerializer<CloudEvent>() {
     override fun serialize(cloudEvent: CloudEvent, gen: JsonGenerator, serializers: SerializerProvider) {
         gen.writeStartObject()
-        cloudEvent.forEach { (key, value) ->
-            gen.writeObjectField(key, value)
-        }
         gen.writeStringField("specversion", cloudEvent.specversion)
         gen.writeStringField("id", cloudEvent.id)
         gen.writeStringField("type", cloudEvent.type)

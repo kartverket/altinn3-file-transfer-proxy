@@ -105,7 +105,8 @@ open class AltinnTransitService(
     fun saveAltinnEvent(altinnEvent: AltinnEvent? = null, fileTransferId: UUID) {
         if (!altinnServerConfig.persistCloudEvent || altinnEvent == null) return
 
-        if (altinnEventRepository.findByResourceinstance(fileTransferId) == null) {
+        if (altinnEventRepository.findByResourceinstance(fileTransferId) == null
+            && !altinnEventRepository.existsByAltinnId(altinnEvent.altinnId)) {
             altinnEventRepository.save(altinnEvent).also { savedResult ->
                 logger.info(
                     "Saved altinn event id: {} with resourceinstance: {}",

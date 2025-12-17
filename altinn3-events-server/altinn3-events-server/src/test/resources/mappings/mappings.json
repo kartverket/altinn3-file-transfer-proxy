@@ -124,21 +124,7 @@
     {
       "request": {
         "method": "GET",
-        "urlPathTemplate": "/broker/api/v1/filetransfer",
-        "queryParameters": {
-          "resourceId": {
-            "matches": "^(kv_devtest|test)$"
-          },
-          "status": {
-            "equalTo": "Published"
-          },
-          "orderAscending": {
-            "equalTo": "true"
-          },
-          "role": {
-            "equalTo": "Recipient"
-          }
-        }
+        "urlPathPattern": "/broker/api/v1/filetransfer(\\?.*)?$"
       },
       "response": {
         "status": 200,
