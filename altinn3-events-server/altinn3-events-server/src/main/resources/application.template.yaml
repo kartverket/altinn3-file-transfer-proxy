@@ -6,6 +6,8 @@ altinn:
   #start-event: "0"
   serviceowner-orgnumber:
   poll-altinn-interval: 10s
+  poll-altinn-fixed-delay: 30s
+  poll-altinn-initial-delay: 30s
   poll-transit-enabled: true
   poll-transit-interval: 10s
   webhook-subscription-delay: 20s # Configure a delay before setting up subscriptions

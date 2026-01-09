@@ -2,6 +2,12 @@ package no.kartverket.altinn3.events.server.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import jakarta.annotation.PreDestroy
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import no.kartverket.altinn3.client.BrokerClient
@@ -16,6 +22,7 @@ import no.kartverket.altinn3.persistence.AltinnFilOverview
 import org.slf4j.LoggerFactory
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.retry.support.RetryTemplate
+import org.springframework.scheduling.annotation.Scheduled
 import java.util.*
 
 private const val ALTINN_ORG_NUMBER_PREFIX = "0192:"
@@ -30,6 +37,7 @@ class AltinnService(
     val logger = LoggerFactory.getLogger(javaClass)
 
     private val pollMutex = Mutex()
+    private val pollScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Volatile
     private var pollRequested: Boolean = false
@@ -64,6 +72,16 @@ class AltinnService(
         logger.info("Successfully uploaded file with transfer ID: {}", initializedFile)
         logger.debug("Initialized file: {}", initializedFile)
         return initializedFile
+    }
+
+    @Scheduled(
+        fixedDelayString = "\${altinn.poll-altinn-fixed-delay:30s}",
+        initialDelayString = "\${altinn.poll-altinn-initial-delay:30s}"
+    )
+    fun scheduledTryPoll() {
+        pollScope.launch {
+            tryPoll()
+        }
     }
 
     suspend fun tryPoll(altinnEvent: AltinnEvent? = null) {
@@ -121,5 +139,10 @@ class AltinnService(
             }
             logger.info("Successfully uploaded file transfer with id={} to transit-db", fileTransferId)
         }
+    }
+
+    @PreDestroy
+    fun shutdown() {
+        pollScope.cancel()
     }
 }
