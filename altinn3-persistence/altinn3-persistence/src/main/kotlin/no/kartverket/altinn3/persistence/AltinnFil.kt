@@ -54,6 +54,7 @@ data class AltinnFilOverview(
     val checksum: String? = null,
     val modified: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC),
     val fagsystemreferanse: String? = null,
+    val published: OffsetDateTime? = null,
     @Version
     @get:JvmName("getVersion")
     @set:JvmName("setVersion")

@@ -19,7 +19,7 @@ interface AltinnFilOverviewRepository : CrudRepository<AltinnFilOverview, UUID> 
                 "where transit_status = :transitStatus " +
                 "and direction = :direction " +
                 "and fagsystemreferanse = :fagsystemreferanse " +
-                "order by created " +
+                "order by published " +
                 "limit 1",
     )
     fun findCompletedTransitsByFagsystemreferanse(
@@ -32,7 +32,7 @@ interface AltinnFilOverviewRepository : CrudRepository<AltinnFilOverview, UUID> 
         "select * from altinn_fil_overview " +
                 "where transit_status = :transitStatus " +
                 "and direction = :direction " +
-                "order by created",
+                "order by published",
     )
     fun findAllByTransitStatus(
         transitStatus: TransitStatus = TransitStatus.NEW,
