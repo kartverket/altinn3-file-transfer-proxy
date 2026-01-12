@@ -1270,6 +1270,11 @@
               }
             },
             "description": "Up to ten arbitrary key value pairs"
+          },
+          "published": {
+            "type": "string",
+            "description": "Date/Time in UTC for when the file was published",
+            "format": "date-time"
           }
         }
       },
