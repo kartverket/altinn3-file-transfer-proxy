@@ -29,6 +29,7 @@ import java.util.*
  * @param sender
  * @param recipients
  * @param propertyList
+ * @param published
  */
 
 
@@ -77,5 +78,8 @@ data class FileTransferOverviewExt(
     val recipients: List<RecipientFileTransferStatusDetailsExt>? = null,
 
     @get:JsonProperty("propertyList")
-    val propertyList: Map<Any, Any>
+    val propertyList: Map<Any, Any>,
+
+    @get:JsonProperty("published")
+    val published: OffsetDateTime? = null,
 )
