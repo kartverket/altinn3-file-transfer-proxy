@@ -81,7 +81,7 @@ class AltinnBrokerSynchronizer(
         logger.info("Synchronizing events from $startEventId")
 
         val eventsFromAllResources = eventLoader.fetchAndMapEventsByResource(altinnConfig.recipientId) { startEventId }
-            .sortedBy { it.fileOverview.created }
+            .sortedBy { it.fileOverview.published }
 
         eventsFromAllResources
             .forEach { event ->

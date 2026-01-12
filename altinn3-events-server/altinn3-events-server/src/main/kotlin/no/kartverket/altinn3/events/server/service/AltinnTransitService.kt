@@ -121,7 +121,7 @@ open class AltinnTransitService(
 
     fun findNewUtgaendeFiler(): Map<AltinnFilOverview, AltinnFil> =
         altinnFilOverviewRepository.findAllByTransitStatus(TransitStatus.NEW, direction = Direction.OUT)
-            .sortedBy { it.created }
+            .sortedBy { it.published }
             .associateWith { filOverview ->
                 altinnFilRepository.findByFileOverviewId(requireNotNull(filOverview.id))
                     ?: error("Could not find corresponding file for fileoverview: ${filOverview.id}")

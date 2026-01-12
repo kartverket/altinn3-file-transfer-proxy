@@ -124,7 +124,7 @@ class AltinnService(
             return
         }
 
-        val sortedFileOverviews = fileOverviews.sortedBy { it.created }
+        val sortedFileOverviews = fileOverviews.sortedBy { it.published }
 
         sortedFileOverviews.forEach { fileOverview ->
             val fileTransferId = altinnTransitService.prepareForFileTransfer(fileOverview, altinnEvent)

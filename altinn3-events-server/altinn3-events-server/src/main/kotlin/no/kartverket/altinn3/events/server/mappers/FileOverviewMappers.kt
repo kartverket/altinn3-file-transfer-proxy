@@ -19,5 +19,6 @@ fun FileOverview.toAltinnFilOverview() = AltinnFilOverview(
     resourceId = this.resourceId,
     transitStatus = TransitStatus.NEW,
     direction = Direction.IN,
-    jsonPropertyList = jacksonObjectMapper().writeValueAsString(this.propertyList)
+    jsonPropertyList = jacksonObjectMapper().writeValueAsString(this.propertyList),
+    published = this.published
 )
