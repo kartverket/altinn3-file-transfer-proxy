@@ -26,7 +26,7 @@ class HealthCheckService(
     }
 
     @Profile("!poll")
-    //@Scheduled(fixedRateString = "#{healthCheckProperties.interval}")
+    @Scheduled(fixedRateString = "#{healthCheckProperties.interval}")
     fun checkHealth() {
         val status = try {
             restClient.get()
