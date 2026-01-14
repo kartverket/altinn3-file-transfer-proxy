@@ -1,5 +1,6 @@
 package no.kartverket.altinn3.events.server.handler
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.kartverket.altinn3.client.BrokerClient
@@ -12,6 +13,7 @@ import no.kartverket.altinn3.models.FileOverview
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 import org.springframework.retry.support.RetryTemplate
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
@@ -32,6 +34,11 @@ class WebhookRequestHandler(
 
     override suspend fun invoke(request: ServerRequest): ServerResponse {
         val cloudEvent = request.awaitBody<CloudEvent>()
+
+        if (cloudEvent.type == AltinnEventType.PUBLISHED.type && isSender(cloudEvent.data)) {
+            return ServerResponse.ok().buildAndAwait()
+        }
+
         logger.info(
             "Got cloud event with ID: ${cloudEvent.id}, type ${cloudEvent.type} and time: ${
                 cloudEvent.time?.toLocalTime()
@@ -66,5 +73,11 @@ class WebhookRequestHandler(
             brokerClient.getFileOverview(UUID.fromString(resourceInstance))
         }
     }
+
+    private fun isSender(data: Any?): Boolean {
+        val map = data as? Map<*, *> ?: return false
+        return map["Role"] == "Sender"
+    }
+
 }
 
