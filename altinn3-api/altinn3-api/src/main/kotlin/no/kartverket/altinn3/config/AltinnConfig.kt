@@ -4,7 +4,7 @@ data class AltinnConfig(
     var environment: AltinnEnvironment? = null,
     var apiKey: String? = null,
     var url: String? = null, //to override environment url
-    val timeout: Int? = null, //in milliseconds
+    var timeout: Int? = null, //in milliseconds
 
     var maskinporten: MaskinportenConfig? = null
 ) {
