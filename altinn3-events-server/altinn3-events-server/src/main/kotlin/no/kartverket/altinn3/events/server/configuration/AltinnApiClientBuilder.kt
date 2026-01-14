@@ -9,6 +9,7 @@ import no.kartverket.altinn3.helpers.UUIDHttpMessageConverter
 import no.kartverket.altinn3.helpers.UnitHttpMessageConverter
 import org.springframework.core.env.Environment
 import org.springframework.http.client.ClientHttpRequestInterceptor
+import org.springframework.http.client.SimpleClientHttpRequestFactory
 import org.springframework.http.converter.FormHttpMessageConverter
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
 import org.springframework.web.client.RestClient
@@ -55,9 +56,14 @@ object AltinnApiClientBuilder {
         environment: Environment,
         requestInterceptors: Consumer<MutableList<ClientHttpRequestInterceptor>>? = null
     ): FileTransferApi {
+        val factory = SimpleClientHttpRequestFactory()
+        factory.setReadTimeout(altinnConfig.timeout ?: 60000)
+        factory.setConnectTimeout(altinnConfig.timeout ?: 60000)
+
         val client = RestClient.builder()
             .requestInterceptors(requestInterceptors ?: Consumer {})
             .baseUrl(altinnConfig.baseUrl())
+            .requestFactory(factory)
             .messageConverters {
                 it.apply {
                     add(MappingJackson2HttpMessageConverter())
