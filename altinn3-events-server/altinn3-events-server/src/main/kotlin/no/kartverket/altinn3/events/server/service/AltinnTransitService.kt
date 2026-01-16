@@ -123,7 +123,12 @@ open class AltinnTransitService(
         altinnFilOverviewRepository.findAllByTransitStatus(TransitStatus.NEW, direction = Direction.OUT)
             .sortedBy { it.published }
             .associateWith { filOverview ->
-                altinnFilRepository.findByFileOverviewId(requireNotNull(filOverview.id))
-                    ?: error("Could not find corresponding file for fileoverview: ${filOverview.id}")
+                val filOverviewId = requireNotNull(filOverview.id)
+                altinnFilRepository.findByFileOverviewId(filOverviewId)
+                    ?: run {
+                        Thread.sleep(1000)
+                        altinnFilRepository.findByFileOverviewId(filOverviewId)
+                    }
+                    ?: error("Could not find corresponding file for fileoverview: $filOverviewId")
             }
 }
