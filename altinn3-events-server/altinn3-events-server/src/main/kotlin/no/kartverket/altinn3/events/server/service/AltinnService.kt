@@ -23,6 +23,10 @@ import org.slf4j.LoggerFactory
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.retry.support.RetryTemplate
 import org.springframework.scheduling.annotation.Scheduled
+import java.time.format.DateTimeFormatter
+import java.time.ZoneOffset
+import java.time.Instant
+import java.time.OffsetDateTime
 import java.util.*
 
 private const val ALTINN_ORG_NUMBER_PREFIX = "0192:"
@@ -105,7 +109,8 @@ class AltinnService(
             resourceId = config.resourceId,
             status = FileTransferStatusNullable.Published,
             role = Role.Recipient,
-            orderAscending = true
+            orderAscending = true,
+            from = FromUtil.getFromTime(config.pollLookbackDays)
         )
         if (fileTransferIds.isEmpty()) {
             logger.debug("No file transfers to poll from Altinn")
@@ -138,6 +143,12 @@ class AltinnService(
                 }
             }
             logger.info("Successfully uploaded file transfer with id={} to transit-db", fileTransferId)
+        }
+    }
+
+    object FromUtil {
+        fun getFromTime(lookbackDays: Int, now: Instant = Instant.now()): OffsetDateTime {
+            return now.minusSeconds(lookbackDays * 24 * 60 * 60L).atOffset(ZoneOffset.UTC)
         }
     }
 

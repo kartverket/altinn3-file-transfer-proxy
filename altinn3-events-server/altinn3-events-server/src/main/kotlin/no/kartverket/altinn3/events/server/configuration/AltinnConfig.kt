@@ -95,8 +95,18 @@ data class AltinnServerConfig(
     var webhooks: List<AltinnWebhook> = emptyList(),
     var startEvent: String?,
     var serviceownerOrgnumber: String? = null,
-    var skipPollAndWebhook: Boolean = false
-)
+    var skipPollAndWebhook: Boolean = false,
+
+    @Deprecated(message = "Use pollLookbackDays instead",
+                replaceWith = ReplaceWith("pollLookbackDays"),
+                level = DeprecationLevel.WARNING)
+    var pollLookback: Int = 14 // Do not use directly. Always use pollLookbackDays
+) {
+    // Custom getter to ensure pollLookbackDays is never < 5
+    @get:Suppress("DEPRECATION")
+    val pollLookbackDays: Int
+        get() = if (pollLookback < 5) 5 else pollLookback
+}
 
 data class AltinnRetryConfig(
     var initialInterval: Int = 500,

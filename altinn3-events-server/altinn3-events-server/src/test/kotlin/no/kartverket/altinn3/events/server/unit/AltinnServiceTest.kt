@@ -2,8 +2,10 @@ package no.kartverket.altinn3.events.server.unit
 
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
+import no.kartverket.altinn3.broker.infrastructure.Serializer
 import no.kartverket.altinn3.client.BrokerClient
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
+import no.kartverket.altinn3.events.server.configuration.webhookConfig
 import no.kartverket.altinn3.events.server.service.AltinnService
 import no.kartverket.altinn3.events.server.service.AltinnTransitService
 import no.kartverket.altinn3.models.*
@@ -220,5 +222,68 @@ class AltinnServiceTest {
         verify(timeout = 1_000, exactly = 1) { brokerClient.downloadFileBytes(transferId) }
         verify(timeout = 1_000, exactly = 1) { altinnTransitService.startTransfer(fileOverview, payload, any()) }
         verify(timeout = 1_000, exactly = 1) { brokerClient.confirmDownload(transferId) }
+    }
+
+    @Test
+    fun `getFromTime should format the date correctly`() {
+        val _config = AltinnServerConfig(
+            webhookSubscriptionDelay = "20s",
+            pollTransitInterval = "15s",
+            pollTransitEnabled = true,
+            recipientId = "",
+            resourceId = "",
+            persistCloudEvent = true,
+            persistAltinnFile = true,
+            sendResponse = true,
+            pollAltinnInterval = "15s",
+            api = null,
+            webhookExternalUrl = null,
+            webhooks = emptyList(),
+            startEvent = null,
+            serviceownerOrgnumber = null,
+            skipPollAndWebhook = false,
+            pollLookback = 14
+        )
+
+        val fromTime = AltinnService.FromUtil.getFromTime(_config.pollLookbackDays)
+        val expectedTime = java.time.OffsetDateTime.now().minusDays(14L)
+
+        // Allow a small delta for execution time
+        val delta = java.time.Duration.ofSeconds(1)
+
+        val fromTimeString: String = Serializer.jacksonObjectMapper.writeValueAsString(fromTime).replace("\"", "")
+        // assert format of fromTimeString to be given as yyyy-MM-ddTHH:mm:ss
+        Assertions.assertTrue(Regex("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d*)?Z").matches(fromTimeString),
+            "fromTimeString should match the expected format"
+        )
+
+        Assertions.assertTrue(
+            fromTime.isAfter(expectedTime.minus(delta)) && fromTime.isBefore(expectedTime.plus(delta)),
+            "fromTime should be within the expected range"
+        )
+    }
+
+    @Test
+    fun `pollLookbackDays should never return under 5`() {
+        val _config = AltinnServerConfig(
+            webhookSubscriptionDelay = "20s",
+            pollTransitInterval = "15s",
+            pollTransitEnabled = true,
+            recipientId = "",
+            resourceId = "",
+            persistCloudEvent = true,
+            persistAltinnFile = true,
+            sendResponse = true,
+            pollAltinnInterval = "15s",
+            api = null,
+            webhookExternalUrl = null,
+            webhooks = emptyList(),
+            startEvent = null,
+            serviceownerOrgnumber = null,
+            skipPollAndWebhook = false,
+            pollLookback = 0
+        )
+
+        Assertions.assertEquals(5, _config.pollLookbackDays)
     }
 }
