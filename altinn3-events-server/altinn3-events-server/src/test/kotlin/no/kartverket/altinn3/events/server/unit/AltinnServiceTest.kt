@@ -83,7 +83,8 @@ class AltinnServiceTest {
                 resourceId = "resource",
                 status = FileTransferStatusNullable.Published,
                 role = Role.Recipient,
-                orderAscending = true
+                orderAscending = true,
+                from = any()
             )
         } returns emptyList()
 
@@ -94,7 +95,8 @@ class AltinnServiceTest {
                 resourceId = "resource",
                 status = FileTransferStatusNullable.Published,
                 role = Role.Recipient,
-                orderAscending = true
+                orderAscending = true,
+                from = any()
             )
         }
         verify(exactly = 0) { brokerClient.getFileOverview(any()) }
@@ -116,7 +118,8 @@ class AltinnServiceTest {
                 resourceId = "resource",
                 status = FileTransferStatusNullable.Published,
                 role = Role.Recipient,
-                orderAscending = true
+                orderAscending = true,
+                from = any()
             )
         } returns listOf(transferId)
 
@@ -139,7 +142,8 @@ class AltinnServiceTest {
                 resourceId = "resource",
                 status = FileTransferStatusNullable.Published,
                 role = Role.Recipient,
-                orderAscending = true
+                orderAscending = true,
+                from = any()
             )
         }
         verify(exactly = 1) { brokerClient.getFileOverview(transferId) }
@@ -156,7 +160,8 @@ class AltinnServiceTest {
                 resourceId = "resource",
                 status = FileTransferStatusNullable.Published,
                 role = Role.Recipient,
-                orderAscending = true
+                orderAscending = true,
+                from = any()
             )
         } returns emptyList()
 
@@ -167,7 +172,8 @@ class AltinnServiceTest {
                 resourceId = "resource",
                 status = FileTransferStatusNullable.Published,
                 role = Role.Recipient,
-                orderAscending = true
+                orderAscending = true,
+                from = any()
             )
         }
 
@@ -191,7 +197,8 @@ class AltinnServiceTest {
                 resourceId = "resource",
                 status = FileTransferStatusNullable.Published,
                 role = Role.Recipient,
-                orderAscending = true
+                orderAscending = true,
+                from = any()
             )
         } returns listOf(transferId)
 
@@ -214,7 +221,8 @@ class AltinnServiceTest {
                 resourceId = "resource",
                 status = FileTransferStatusNullable.Published,
                 role = Role.Recipient,
-                orderAscending = true
+                orderAscending = true,
+                from = any()
             )
         }
         verify(timeout = 1_000, exactly = 1) { brokerClient.getFileOverview(transferId) }
