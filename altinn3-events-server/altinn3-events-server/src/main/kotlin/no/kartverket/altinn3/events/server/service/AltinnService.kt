@@ -116,6 +116,9 @@ class AltinnService(
             logger.debug("No file transfers to poll from Altinn")
             return
         }
+        if (fileTransferIds.size > 99) {
+            pollRequested = true // requeue another poll if fetched files is the maximum per transfer.
+        }
         logger.info("Found {} file transfers to process", fileTransferIds.size)
 
         val fileOverviews = fileTransferIds.mapNotNull { fileTransferId ->

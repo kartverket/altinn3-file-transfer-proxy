@@ -77,52 +77,17 @@ class AltinnBrokerSynchronizerTest {
 
     @Test
     fun `sync() - calls fetchAndMapEventsByResource and publishes AltinnSyncFinishedEvent`() = runTest {
-        val event1 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
-        val event2 = createCloudEvent(AltinnEventType.PUBLISHED).createEventWithFileOverview()
-
-        every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(event1, event2)
-
-        coEvery { cloudEventHandler.handle(any()) } just runs
+        coEvery { altinnService.tryPoll() } just Runs
         synchronizer.sync()
-
-        coVerify(exactly = 1) { cloudEventHandler.tryHandle<Unit>(event1, any(), any()) }
-        coVerify(exactly = 1) { cloudEventHandler.tryHandle<Unit>(event2, any(), any()) }
-
+        coVerify(exactly = 1) { altinnService.tryPoll() }
         val eventSlot = slot<AltinnProxyStateMachineEvent.SyncSucceeded>()
         verify { publisher.publishEvent(capture(eventSlot)) }
-        assertEquals(event2.cloudEvent.id, eventSlot.captured.lastSyncedEvent)
     }
 
     @Test
-    fun `poll() - check that AltinnService is called`() =
-        runTest {
-            coEvery { altinnService.tryPoll() } just Runs
-            synchronizer.poll()
-            coVerify(exactly = 1) { altinnService.tryPoll() }
-        }
-
-    @Test
-    fun `sync() - onError triggers HandleSyncEventFailedException with correct eventId`() = runTest {
-        val event: EventWithFileOverview =
-            createCloudEvent(AltinnEventType.PUBLISHED).copy(id = "someEventId").createEventWithFileOverview()
-
-        every { eventLoader.fetchAndMapEventsByResource(any(), any()) } returns listOf(event)
-
-        coEvery {
-            cloudEventHandler.tryHandle(
-                any<EventWithFileOverview>(),
-                any<suspend () -> Unit>(),
-                any<suspend (Throwable) -> Unit>()
-            )
-        } coAnswers {
-            val onErrorLambda = thirdArg<suspend (Throwable) -> Unit>()
-            onErrorLambda.invoke(RuntimeException("Simulated sync failure"))
-        }
-
-        assertThrows<HandleSyncEventFailedException> {
-            synchronizer.sync("startEventId123")
-        }.also { ex ->
-            assertEquals("startEventId123", ex.lastSuccessfulEventId)
-        }
+    fun `poll() - check that AltinnService is called`() = runTest {
+        coEvery { altinnService.tryPoll() } just Runs
+        synchronizer.poll()
+        coVerify(exactly = 1) { altinnService.tryPoll() }
     }
 }

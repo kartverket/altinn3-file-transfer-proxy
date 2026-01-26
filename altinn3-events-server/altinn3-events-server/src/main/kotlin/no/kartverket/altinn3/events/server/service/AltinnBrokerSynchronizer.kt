@@ -3,7 +3,6 @@ package no.kartverket.altinn3.events.server.service
 import kotlinx.coroutines.coroutineScope
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
 import no.kartverket.altinn3.events.server.domain.state.AltinnProxyStateMachineEvent
-import no.kartverket.altinn3.events.server.exceptions.HandleSyncEventFailedException
 import no.kartverket.altinn3.events.server.handler.CloudEventHandler
 import no.kartverket.altinn3.events.server.models.EventWithFileOverview
 import no.kartverket.altinn3.persistence.AltinnFailedEventRepository
@@ -78,27 +77,9 @@ class AltinnBrokerSynchronizer(
 
     suspend fun sync(startEventId: String = "0") = coroutineScope {
         var lastSuccessfullId = startEventId
-        logger.info("Synchronizing events from $startEventId")
+        logger.info("Synchronizing from broker, event ID ignored: $startEventId")
 
-        val eventsFromAllResources = eventLoader.fetchAndMapEventsByResource(altinnConfig.recipientId) { startEventId }
-            .sortedBy { it.fileOverview.published }
-
-        eventsFromAllResources
-            .forEach { event ->
-                val eventId = requireNotNull(event.cloudEvent.id)
-                logger.debug("Syncing event with ID: $eventId")
-
-                cloudEventHandler.tryHandle(
-                    event,
-                    onSuccess = {
-                        lastSuccessfullId = eventId
-                    },
-                    onFailure = {
-                        logger.debug("Failed to sync event with ID: $eventId")
-                        throw HandleSyncEventFailedException(lastSuccessfullId)
-                    }
-                )
-            }
+        altinnService.tryPoll()
 
         applicationEventPublisher.publishEvent(
             AltinnProxyStateMachineEvent.SyncSucceeded(lastSuccessfullId)
