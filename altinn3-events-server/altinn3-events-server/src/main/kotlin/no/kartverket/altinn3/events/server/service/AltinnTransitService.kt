@@ -121,7 +121,7 @@ open class AltinnTransitService(
 
     fun findNewUtgaendeFiler(): Map<AltinnFilOverview, AltinnFil> =
         altinnFilOverviewRepository.findAllByTransitStatus(TransitStatus.NEW, direction = Direction.OUT)
-            .sortedBy { it.published }
+            .sortedBy { it.created }
             .associateWith { filOverview ->
                 val filOverviewId = requireNotNull(filOverview.id)
                 altinnFilRepository.findByFileOverviewId(filOverviewId)
