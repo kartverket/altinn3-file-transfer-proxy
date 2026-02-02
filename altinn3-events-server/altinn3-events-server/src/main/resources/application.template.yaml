@@ -20,9 +20,6 @@ altinn:
       subject-filter: /organisation/${altinn.recipient-id}
       handler: "webhookHandler" #bean name
       type-filter: "no.altinn.broker.published"
-  persist-cloud-event: true
-  persist-altinn-file: true
-  send-response: true
   retry:
     initial-interval: 500 # milliseconds
     max-interval: 10 # minutes

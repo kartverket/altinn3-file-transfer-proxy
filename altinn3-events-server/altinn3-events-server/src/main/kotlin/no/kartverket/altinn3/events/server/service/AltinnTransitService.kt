@@ -103,7 +103,7 @@ open class AltinnTransitService(
     }
 
     fun saveAltinnEvent(altinnEvent: AltinnEvent? = null, fileTransferId: UUID) {
-        if (!altinnServerConfig.persistCloudEvent || altinnEvent == null) return
+        if (altinnEvent == null) return
 
         if (altinnEventRepository.findByResourceinstance(fileTransferId) == null
             && !altinnEventRepository.existsByAltinnId(altinnEvent.altinnId)) {

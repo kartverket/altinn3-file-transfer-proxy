@@ -46,10 +46,7 @@ class AltinnService(
     @Volatile
     private var pollRequested: Boolean = false
 
-    fun sendResponseTilInnsender(fileOverview: AltinnFilOverview, altinnFil: AltinnFil): UUID? {
-        if (!config.sendResponse)
-            return null.also { logger.debug("Send response to innsender disabled. Skipping...") }
-
+    fun sendResponseTilInnsender(fileOverview: AltinnFilOverview, altinnFil: AltinnFil): UUID {
         val innsender = requireNotNull(fileOverview.sender) { "Could not find innsender" }
         val propertyList = fileOverview.jsonPropertyList
             ?.let { jacksonObjectMapper().readValue<Map<Any, Any>>(it) }

@@ -5,7 +5,6 @@ import kotlinx.coroutines.test.runTest
 import no.kartverket.altinn3.broker.infrastructure.Serializer
 import no.kartverket.altinn3.client.BrokerClient
 import no.kartverket.altinn3.events.server.configuration.AltinnServerConfig
-import no.kartverket.altinn3.events.server.configuration.webhookConfig
 import no.kartverket.altinn3.events.server.service.AltinnService
 import no.kartverket.altinn3.events.server.service.AltinnTransitService
 import no.kartverket.altinn3.models.*
@@ -46,7 +45,6 @@ class AltinnServiceTest {
 
     @Test
     fun `sendResponseTilInnsender initializes transfer and uploads file`() {
-        every { config.sendResponse } returns true
         every { config.recipientId } returns "recipientId"
         val fileOverview = mockk<AltinnFilOverview>(relaxed = true) {
             every { sender } returns "1234:5678"
@@ -240,9 +238,6 @@ class AltinnServiceTest {
             pollTransitEnabled = true,
             recipientId = "",
             resourceId = "",
-            persistCloudEvent = true,
-            persistAltinnFile = true,
-            sendResponse = true,
             pollAltinnInterval = "15s",
             api = null,
             webhookExternalUrl = null,
@@ -279,9 +274,6 @@ class AltinnServiceTest {
             pollTransitEnabled = true,
             recipientId = "",
             resourceId = "",
-            persistCloudEvent = true,
-            persistAltinnFile = true,
-            sendResponse = true,
             pollAltinnInterval = "15s",
             api = null,
             webhookExternalUrl = null,
