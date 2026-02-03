@@ -9,5 +9,5 @@ abstract class SignedJwtToken {
 
     val jwt = lazy { SignedJWT.parse(token) }
     val isExpired:Boolean
-        get() =jwt.value.jwtClaimsSet.expirationTime.before(Date(System.currentTimeMillis() - 30000))
+        get() =jwt.value.jwtClaimsSet.expirationTime.before(Date(System.currentTimeMillis() - 120000))
 }
