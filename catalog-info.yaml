@@ -2,7 +2,6 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: altinn3-proxy
-  tags: []
   title: Altinn3 integrasjon
 spec:
   type: service
@@ -14,7 +13,6 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: altinn3-motor
-  tags: []
 spec:
   type: service
   owner: digibok
@@ -22,6 +20,7 @@ spec:
   dependsOn:
     - resource:default/grunnboksdatabasen
     - resource:default/altinn3-persistence
+  system: system:default/grunnbok
 
 ---
 apiVersion: backstage.io/v1alpha1
@@ -29,7 +28,6 @@ kind: Resource
 metadata:
   name: altinn3-persistence
   title: Altinn3 transit database
-  tags: []
 spec:
   type: database
   owner: digibok
@@ -39,7 +37,6 @@ apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
   name: altinn3-api
-  tags: []
 spec:
   type: openapi
   owner: digibok
@@ -52,12 +49,11 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: altinn3-events-server
-  tags: []
 spec:
   type: service
   owner: digibok
   lifecycle: production
   consumesApis:
-    - altinn3-api
+    - api:default/altinn3-api
   dependsOn:
     - resource:default/altinn3-persistence
