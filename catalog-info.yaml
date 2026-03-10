@@ -7,6 +7,7 @@ spec:
   type: service
   lifecycle: production
   owner: digibok
+  system: system:default/grunnbok
 
 ---
 apiVersion: backstage.io/v1alpha1
@@ -31,6 +32,7 @@ metadata:
 spec:
   type: database
   owner: digibok
+  system: system:default/grunnbok
 
 ---
 apiVersion: backstage.io/v1alpha1
@@ -43,6 +45,7 @@ spec:
   lifecycle: production
   definition:
     $text: https://github.com/kartverket/altinn3-proxy/blob/main/specs/altinn-broker-v1.json
+  system: system:default/grunnbok
 
 ---
 apiVersion: backstage.io/v1alpha1
@@ -57,3 +60,4 @@ spec:
     - api:default/altinn3-api
   dependsOn:
     - resource:default/altinn3-persistence
+  system: system:default/grunnbok
