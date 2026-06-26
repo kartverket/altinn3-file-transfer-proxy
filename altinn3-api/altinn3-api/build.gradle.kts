@@ -9,18 +9,18 @@ dependencies {
     implementation(libs.bundles.jackson)
     implementation(libs.spring.security.oauth2.jose)
     implementation(libs.slf4j)
+    implementation(libs.bouncycastle)
 
     // TODO: knyttet til BrokerExtension:customizedUploadSingleFileRequestConfig, fjern dersom nevnt fun fjernes
     // Avhengighet knyttet til MultipartBodyBuilder
 //    implementation("org.reactivestreams:reactive-streams:1.0.4")
     // /
 
-    testImplementation(libs.kotlintest.runner.junit)
     testImplementation(libs.kotlin.test)
     testRuntimeOnly(libs.logback)
 }
 
-val sourcesJar = tasks.creating(Jar::class) {
+val sourcesJar = tasks.registering(Jar::class) {
 //    val sourceSets = this.extensions.getByType<KotlinJvmProjectExtension>().sourceSets
     archiveClassifier.set("sources")
     sourceSets.getByName("main").allSource
@@ -41,7 +41,7 @@ enum class AltinnApi(val spec: String, val config: Action<GenerateTask> = Action
 
 }
 
-val genAltinnApiTaskProviders = AltinnApi.values().map {
+val genAltinnApiTaskProviders = AltinnApi.entries.map {
     tasks.register(it.genClientTaskName(), GenerateTask::class, defaultAltinnApiConfig(it)).apply {
         configure(it.config)
     }
@@ -52,7 +52,7 @@ fun defaultAltinnApiConfig(api: AltinnApi): Action<GenerateTask> = Action {
 
     generatorName.set("kotlin")
     inputSpec.set("$rootDir/specs/${api.spec}")
-    outputDir.set(layout.buildDirectory.dir(api.genClientTaskName()).map { it.toString() })
+    outputDir.set(layout.buildDirectory.dir(api.genClientTaskName()))
     templateDir.set("$rootDir/openapi-templates/kotlin") // Custom mustache templates - p.t. brukt for å tweake enums
     packageName.set("no.kartverket.altinn3.$api")
     modelPackage.set("no.kartverket.altinn3.models")

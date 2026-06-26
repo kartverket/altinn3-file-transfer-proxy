@@ -35,51 +35,67 @@ import java.util.*
 
 data class FileTransferOverviewExt(
 
-    @get:JsonProperty("fileTransferId")
+    @field:JsonProperty("fileTransferId")
+    @param:JsonProperty("fileTransferId")
     val fileTransferId: UUID? = null,
 
-    @get:JsonProperty("resourceId")
+    @field:JsonProperty("resourceId")
+    @param:JsonProperty("resourceId")
     val resourceId: String? = null,
 
-    @get:JsonProperty("fileName")
+    @field:JsonProperty("fileName")
+    @param:JsonProperty("fileName")
     val fileName: String? = null,
 
-    @get:JsonProperty("sendersFileTransferReference")
+    @field:JsonProperty("sendersFileTransferReference")
+    @param:JsonProperty("sendersFileTransferReference")
     val sendersFileTransferReference: String? = null,
 
-    @get:JsonProperty("checksum")
+    @field:JsonProperty("checksum")
+    @param:JsonProperty("checksum")
     val checksum: String? = null,
 
-    @get:JsonProperty("useVirusScan")
+    @field:JsonProperty("useVirusScan")
+    @param:JsonProperty("useVirusScan")
     val useVirusScan: Boolean? = null,
 
-    @get:JsonProperty("fileTransferSize")
+    @field:JsonProperty("fileTransferSize")
+    @param:JsonProperty("fileTransferSize")
     val fileTransferSize: Long? = null,
 
-    @get:JsonProperty("fileTransferStatus")
+    @field:JsonProperty("fileTransferStatus")
+    @param:JsonProperty("fileTransferStatus")
     val fileTransferStatus: FileTransferStatusExt? = null,
 
-    @get:JsonProperty("fileTransferStatusText")
+    @field:JsonProperty("fileTransferStatusText")
+    @param:JsonProperty("fileTransferStatusText")
     val fileTransferStatusText: String? = null,
 
-    @get:JsonProperty("fileTransferStatusChanged")
+    @field:JsonProperty("fileTransferStatusChanged")
+    @param:JsonProperty("fileTransferStatusChanged")
     val fileTransferStatusChanged: OffsetDateTime? = null,
 
-    @get:JsonProperty("created")
+    @field:JsonProperty("created")
+    @param:JsonProperty("created")
     val created: OffsetDateTime? = null,
 
-    @get:JsonProperty("expirationTime")
+    @field:JsonProperty("expirationTime")
+    @param:JsonProperty("expirationTime")
     val expirationTime: OffsetDateTime? = null,
 
-    @get:JsonProperty("sender")
+    @field:JsonProperty("sender")
+    @param:JsonProperty("sender")
     val sender: String? = null,
 
-    @get:JsonProperty("recipients")
+    @field:JsonProperty("recipients")
+    @param:JsonProperty("recipients")
     val recipients: List<RecipientFileTransferStatusDetailsExt>? = null,
 
-    @get:JsonProperty("propertyList")
-    val propertyList: Map<Any, Any>,
+    @field:JsonProperty("propertyList")
+    @param:JsonProperty("propertyList")
+    val propertyList: Map<String, Any> = emptyMap(),
 
-    @get:JsonProperty("published")
+    @field:JsonProperty("published")
+    @param:JsonProperty("published")
     val published: OffsetDateTime? = null,
 )
