@@ -1,9 +1,9 @@
 [versions]
-kotlin = "2.2.21"
+kotlin = "2.3.21"
 coroutines = "1.10.2"
-spring-boot = "3.5.13"
+spring-boot = "4.1.0"
 jackson = "2.20.1"
-testcontainers = "1.21.3"
+testcontainers = "2.0.5"
 flyway = "11.16.0"
 mockk = "1.14.6"
 
@@ -15,6 +15,7 @@ kotlinx-coroutines-reactor = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 jackson-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
 jackson-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
 spring-boot-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux", version.ref = "spring-boot" }
+spring-boot-flyway = { module = "org.springframework.boot:spring-boot-starter-flyway", version.ref = "spring-boot" }
 spring-boot-data-jdbc = { module = "org.springframework.boot:spring-boot-starter-data-jdbc", version.ref = "spring-boot" }
 spring-boot-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
 spring-security-oauth2-jose = { module = "org.springframework.security:spring-security-oauth2-jose", version = "6.5.6" }
@@ -27,26 +28,27 @@ logstash = { module = "net.logstash.logback:logstash-logback-encoder", version =
 slf4j = { module = "org.slf4j:slf4j-api", version = "2.0.17" }
 logback = { module = "ch.qos.logback:logback-classic", version = "1.5.21" }
 detekt-klint = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version = "1.23.8" }
-micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version = "1.16.0" }
+micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version = "1.17.0" }
+bouncycastle = { module = "org.bouncycastle:bcpkix-jdk18on", version = "1.84" } # Force newer version than transitive from kotlinBouncyCastleConfiguration 1.80 -> 1.84 to fix CVE-2026-3505
 
 # Test libs
 spring-boot-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
+spring-boot-test-webtestclient = { module = "org.springframework.boot:spring-boot-webtestclient", version.ref = "spring-boot" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
-kotlintest-runner-junit = { module = "io.kotlintest:kotlintest-runner-junit5", version = "3.4.2" }
 kotlintest-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version = "coroutines" }
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers", version.ref = "spring-boot" }
-testcontainers-postgres = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
-testcontainers-oracle = { module = "org.testcontainers:oracle-xe", version.ref = "testcontainers" }
-testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
+testcontainers-postgres = { module = "org.testcontainers:testcontainers-postgresql", version.ref = "testcontainers" }
+testcontainers-oracle = { module = "org.testcontainers:testcontainers-oracle-xe", version.ref = "testcontainers" }
+testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter", version.ref = "testcontainers" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 mockk-jvm = { module = "io.mockk:mockk-jvm", version.ref = "mockk" }
 spring-mockk = { module = "com.ninja-squad:springmockk", version = "4.0.2" }
-wiremock = { module = "org.wiremock.integrations:wiremock-spring-boot", version = "4.2.1" }
+wiremock = { module = "org.wiremock:wiremock-standalone", version = "3.13.2" }
 spring-test-client = { module = "io.rest-assured:spring-web-test-client", version = "5.5.6" }
 jdom-xml = { module = "org.jdom:jdom2", version = "2.0.6.1" }
 
 [bundles]
-kotlin-test = ["kotlin-test", "kotlintest-coroutines", "kotlintest-runner-junit"]
+kotlin-test = ["kotlin-test", "kotlintest-coroutines"]
 testcontainers = ["testcontainers-postgres", "spring-boot-testcontainers", "testcontainers-junit"]
 flyway = ["flyway-core", "flyway-postgres"]
 jdbc = ["postgres", "spring-boot-data-jdbc"]
@@ -61,4 +63,4 @@ spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 versions = { id = "com.github.ben-manes.versions", version = "0.53.0" }
-openapi-gen = { id = "org.openapi.generator", version = "7.17.0" }
+openapi-gen = { id = "org.openapi.generator", version = "7.23.0" }
