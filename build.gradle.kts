@@ -21,7 +21,7 @@ allprojects {
 
             val kotlin = this.extensions.getByType<KotlinJvmProjectExtension>()
             kotlin.apply {
-                jvmToolchain(21)
+                jvmToolchain(25)
             }
 
             val sourcesJar = tasks.register("sourcesJar", Jar::class) {
