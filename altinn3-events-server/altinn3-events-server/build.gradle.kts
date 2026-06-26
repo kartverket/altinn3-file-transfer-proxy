@@ -19,6 +19,7 @@ dependencies {
     implementation(libs.bundles.coroutines)
     implementation(libs.spring.boot.webflux)
     implementation(libs.spring.boot.actuator)
+    implementation(libs.bouncycastle)
     runtimeOnly(libs.logstash)
     implementation(libs.bundles.jdbc)
     runtimeOnly(libs.bundles.flyway)
@@ -31,6 +32,7 @@ dependencies {
     testImplementation(libs.bundles.testcontainers)
     testImplementation(libs.bundles.mocking)
     testImplementation(libs.spring.test.client)
+    testImplementation(libs.spring.boot.test.webtestclient)
 
     detektPlugins(libs.detekt.klint)
 }
@@ -48,28 +50,24 @@ tasks.test {
 
 tasks.register("openApiAltinnBrokerWebhooksGen", GenerateTask::class) {
     group = "openapi tools"
-    outputDir.set(layout.buildDirectory.dir(name).map { it.toString() })
+    outputDir.set(layout.buildDirectory.dir(name).get().asFile)
     generatorName.set("kotlin-spring")
     inputSpec.set("$rootDir/specs/altinn-broker-v1.json")
-//    apiFilesConstrainedTo.addAll("Default")
-//    modelFilesConstrainedTo.addAll("")
-//    supportingFilesConstrainedTo.addAll("")
 
     packageName.set("no.kartverket.altinn3.webhooks")
     skipValidateSpec.set(true)
     removeOperationIdPrefix.set(true)
     configOptions.set(
         mapOf(
-            //        "annotationLibrary" to "none",
             "documentationProvider" to "none",
-            "useSpringBoot3" to "true",
+            "useSpringBoot4" to "true",
+            "useSpringBoot3" to "false",
             "useSwaggerUI" to "false",
             "reactive" to "true",
             "serviceImplementation" to "true",
             "mapFileBinaryToByteArray" to "true",
             "moshiCodeGen" to "true",
             "library" to "spring-boot"
-            //"serializationLibrary" to "jackson"
         )
     )
     generateApiTests.set(false)
@@ -84,8 +82,9 @@ tasks.named<BootBuildImage>("bootBuildImage") {
     environment.putAll(
         mapOf(
             "BP_NATIVE_IMAGE" to "false",
-            "BP_JVM_VERSION" to "21",
+            "BP_JVM_VERSION" to "25",
             "BPE_DELIM_JAVA_TOOL_OPTIONS" to " ",
+            "BPE_APPEND_JAVA_TOOL_OPTIONS" to "-XX:MaxDirectMemorySize=512M",
         )
     )
     if (!System.getenv("IMAGE_URL").isNullOrEmpty()) {
