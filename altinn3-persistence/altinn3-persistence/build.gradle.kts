@@ -22,12 +22,13 @@ tasks.test {
 
 dependencies {
     implementation(libs.bundles.kotlin)
+    implementation(libs.bouncycastle)
+    implementation(libs.spring.boot.flyway)
     runtimeOnly(libs.logstash)
     implementation(libs.bundles.jdbc)
     runtimeOnly(libs.bundles.flyway)
 
     testImplementation(libs.kotlin.test)
-    testImplementation(libs.kotlintest.runner.junit)
     testImplementation(libs.spring.boot.test)
     {
         exclude(module = "mockito-core")

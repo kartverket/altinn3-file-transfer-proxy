@@ -6,31 +6,29 @@ import org.postgresql.util.PGobject
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
-import org.springframework.boot.autoconfigure.data.jdbc.JdbcRepositoriesAutoConfiguration
-import org.springframework.boot.autoconfigure.flyway.FlywayDataSource
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties
+import org.springframework.boot.data.jdbc.autoconfigure.DataJdbcRepositoriesAutoConfiguration
+import org.springframework.boot.flyway.autoconfigure.FlywayDataSource
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.annotation.*
 import org.springframework.core.convert.converter.Converter
 import org.springframework.data.convert.ReadingConverter
 import org.springframework.data.convert.WritingConverter
+import org.springframework.data.jdbc.core.JdbcAggregateOperations
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate
 import org.springframework.data.jdbc.core.convert.DataAccessStrategy
 import org.springframework.data.jdbc.core.convert.JdbcConverter
 import org.springframework.data.jdbc.core.convert.JdbcCustomConversions
 import org.springframework.data.jdbc.core.convert.RelationResolver
+import org.springframework.data.jdbc.core.dialect.JdbcDialect
 import org.springframework.data.jdbc.core.mapping.JdbcMappingContext
 import org.springframework.data.jdbc.core.mapping.JdbcValue
 import org.springframework.data.jdbc.repository.support.JdbcRepositoryFactory
-import org.springframework.data.mapping.callback.EntityCallbacks
 import org.springframework.data.relational.RelationalManagedTypes
-import org.springframework.data.relational.core.dialect.Dialect
 import org.springframework.data.relational.core.mapping.NamingStrategy
-import org.springframework.data.relational.core.mapping.RelationalMappingContext
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
@@ -88,7 +86,7 @@ class TransitJdbcConfigImpl(
     @ReadingConverter
     class PostgresEnumReadingConverter<T : Enum<*>>(
         private val enumClass: Class<T>,
-    ) : Converter<JdbcValue, T> {
+    ) : Converter<JdbcValue, T?> {
 
         override fun convert(source: JdbcValue): T? {
             val value = source.value ?: return null
@@ -133,7 +131,7 @@ class TransitJdbcConfigImpl(
 
 @Import(TransitJdbcConfigImpl::class, TransitDataSourceConfig::class)
 @EnableAutoConfiguration(
-    exclude = [DataSourceAutoConfiguration::class, JdbcRepositoriesAutoConfiguration::class]
+    exclude = [DataSourceAutoConfiguration::class, DataJdbcRepositoriesAutoConfiguration::class]
 )
 @Configuration(proxyBeanMethods = false)
 @Suppress("TooManyFunctions")
@@ -152,7 +150,7 @@ class TransitRepositoryConfig {
     @Primary
     @Bean("transitJdbcMappingContext")
     fun transitJdbcMappingContext(
-        namingStrategy: Optional<NamingStrategy?>,
+        namingStrategy: Optional<NamingStrategy>,
         @Qualifier("transitJdbcCustomConversions") customConversions: JdbcCustomConversions,
         @Qualifier("transitJdbcManagedTypes") jdbcManagedTypes: RelationalManagedTypes,
         transitJdbcConfigImpl: TransitJdbcConfigImpl
@@ -168,7 +166,7 @@ class TransitRepositoryConfig {
         @Qualifier("transitJdbcOperations") operations: NamedParameterJdbcOperations,
         @Qualifier("transitDataAccessStrategy") @Lazy relationResolver: RelationResolver,
         @Qualifier("transitJdbcCustomConversions") conversions: JdbcCustomConversions,
-        @Qualifier("transitJdbcDialect") dialect: Dialect,
+        @Qualifier("transitJdbcDialect") dialect: JdbcDialect,
         transitJdbcConfigImpl: TransitJdbcConfigImpl
     ): JdbcConverter {
         return transitJdbcConfigImpl.jdbcConverter(mappingContext, operations, relationResolver, conversions, dialect)
@@ -178,12 +176,6 @@ class TransitRepositoryConfig {
     @Bean("transitJdbcCustomConversions")
     fun transitJdbcCustomConversions(transitJdbcConfigImpl: TransitJdbcConfigImpl): JdbcCustomConversions =
         transitJdbcConfigImpl.jdbcCustomConversions()
-
-    @Bean("transitEntityCallbacks")
-    fun transitEntityCallbacks(
-        applicationContext: ApplicationContext,
-    ): EntityCallbacks =
-        EntityCallbacks.create(applicationContext)
 
     @Primary
     @Bean("transitJdbcAggregateTemplate")
@@ -210,7 +202,7 @@ class TransitRepositoryConfig {
         @Qualifier("transitJdbcOperations") operations: NamedParameterJdbcOperations,
         @Qualifier("transitJdbcConverter") jdbcConverter: JdbcConverter,
         @Qualifier("transitJdbcMappingContext") context: JdbcMappingContext,
-        @Qualifier("transitJdbcDialect") dialect: Dialect,
+        @Qualifier("transitJdbcDialect") dialect: JdbcDialect,
         transitJdbcConfigImpl: TransitJdbcConfigImpl
     ): DataAccessStrategy {
         return transitJdbcConfigImpl.dataAccessStrategyBean(operations, jdbcConverter, context, dialect)
@@ -221,7 +213,7 @@ class TransitRepositoryConfig {
     fun transitJdbcDialect(
         @Qualifier("transitJdbcOperations") operations: NamedParameterJdbcOperations,
         transitJdbcConfigImpl: TransitJdbcConfigImpl
-    ): Dialect {
+    ): JdbcDialect {
         return transitJdbcConfigImpl.jdbcDialect(operations).also {
             logger.info("Using dialect ${it.javaClass}")
         }
@@ -229,91 +221,34 @@ class TransitRepositoryConfig {
 
     @Bean
     @Qualifier("transit")
-    @Suppress("LongParameterList")
     fun altinnFilOverviewRepository(
-        @Qualifier("transitDataAccessStrategy") dataAccessStrategy: DataAccessStrategy,
-        @Qualifier("transitJdbcMappingContext") relationalMappingContext: RelationalMappingContext,
-        @Qualifier("transitJdbcDialect") dialect: Dialect,
-        @Qualifier("transitJdbcConverter") converter: JdbcConverter,
-        @Qualifier("transitJdbcOperations") operations: NamedParameterJdbcOperations,
-        @Qualifier("transitEntityCallbacks") entityCallbacks: EntityCallbacks,
-        applicationEventPublisher: ApplicationEventPublisher,
+        @Qualifier("transitJdbcAggregateTemplate") aggregateOperations: JdbcAggregateOperations,
     ): AltinnFilOverviewRepository =
-        JdbcRepositoryFactory(
-            dataAccessStrategy,
-            relationalMappingContext,
-            converter,
-            dialect,
-            applicationEventPublisher,
-            operations
-        ).apply { this.setEntityCallbacks(entityCallbacks) }
+        JdbcRepositoryFactory(aggregateOperations)
             .getRepository(AltinnFilOverviewRepository::class.java)
 
     @Bean
     @Qualifier("transit")
-    @Suppress("LongParameterList")
     fun altinnEventRepository(
-        @Qualifier("transitDataAccessStrategy") dataAccessStrategy: DataAccessStrategy,
-        @Qualifier("transitJdbcMappingContext") relationalMappingContext: RelationalMappingContext,
-        @Qualifier("transitJdbcDialect") dialect: Dialect,
-        @Qualifier("transitJdbcConverter") converter: JdbcConverter,
-        @Qualifier("transitJdbcOperations") operations: NamedParameterJdbcOperations,
-        @Qualifier("transitEntityCallbacks") entityCallbacks: EntityCallbacks,
-        applicationEventPublisher: ApplicationEventPublisher,
+        @Qualifier("transitJdbcAggregateTemplate") aggregateOperations: JdbcAggregateOperations,
     ): AltinnEventRepository =
-        JdbcRepositoryFactory(
-            dataAccessStrategy,
-            relationalMappingContext,
-            converter,
-            dialect,
-            applicationEventPublisher,
-            operations
-        ).apply { this.setEntityCallbacks(entityCallbacks) }
+        JdbcRepositoryFactory(aggregateOperations)
             .getRepository(AltinnEventRepository::class.java)
 
     @Bean
     @Qualifier("transit")
-    @Suppress("LongParameterList")
     fun altinnFailedEventRepository(
-        @Qualifier("transitDataAccessStrategy") dataAccessStrategy: DataAccessStrategy,
-        @Qualifier("transitJdbcMappingContext") relationalMappingContext: RelationalMappingContext,
-        @Qualifier("transitJdbcDialect") dialect: Dialect,
-        @Qualifier("transitJdbcConverter") converter: JdbcConverter,
-        @Qualifier("transitJdbcOperations") operations: NamedParameterJdbcOperations,
-        @Qualifier("transitEntityCallbacks") entityCallbacks: EntityCallbacks,
-        applicationEventPublisher: ApplicationEventPublisher,
-    ): AltinnFailedEventRepository {
-        return JdbcRepositoryFactory(
-            dataAccessStrategy,
-            relationalMappingContext,
-            converter,
-            dialect,
-            applicationEventPublisher,
-            operations
-        ).apply { this.setEntityCallbacks(entityCallbacks) }
+        @Qualifier("transitJdbcAggregateTemplate") aggregateOperations: JdbcAggregateOperations,
+    ): AltinnFailedEventRepository =
+        JdbcRepositoryFactory(aggregateOperations)
             .getRepository(AltinnFailedEventRepository::class.java)
-    }
+
 
     @Bean
     @Qualifier("transit")
-    @Suppress("LongParameterList")
     fun altinnFilRepository(
-        @Qualifier("transitDataAccessStrategy") dataAccessStrategy: DataAccessStrategy,
-        @Qualifier("transitJdbcMappingContext") relationalMappingContext: RelationalMappingContext,
-        @Qualifier("transitJdbcDialect") dialect: Dialect,
-        @Qualifier("transitJdbcConverter") converter: JdbcConverter,
-        @Qualifier("transitJdbcOperations") operations: NamedParameterJdbcOperations,
-        @Qualifier("transitEntityCallbacks") entityCallbacks: EntityCallbacks,
-        applicationEventPublisher: ApplicationEventPublisher,
-    ): AltinnFilRepository {
-        return JdbcRepositoryFactory(
-            dataAccessStrategy,
-            relationalMappingContext,
-            converter,
-            dialect,
-            applicationEventPublisher,
-            operations
-        ).apply { this.setEntityCallbacks(entityCallbacks) }
+        @Qualifier("transitJdbcAggregateTemplate") aggregateOperations: JdbcAggregateOperations,
+    ): AltinnFilRepository =
+        JdbcRepositoryFactory(aggregateOperations)
             .getRepository(AltinnFilRepository::class.java)
-    }
 }
