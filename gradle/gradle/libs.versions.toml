@@ -2,7 +2,9 @@
 kotlin = "2.3.21"
 coroutines = "1.10.2"
 spring-boot = "4.1.0"
-jackson = "2.20.1"
+digibok-container-image = "9.1.53"
+digibok-github-publish = "9.0.26"
+jackson = "2.21.4"
 testcontainers = "2.0.5"
 flyway = "11.16.0"
 mockk = "1.14.6"
@@ -20,7 +22,7 @@ spring-boot-data-jdbc = { module = "org.springframework.boot:spring-boot-starter
 spring-boot-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
 spring-security-oauth2-jose = { module = "org.springframework.security:spring-security-oauth2-jose", version = "6.5.6" }
 spring-retry = { module = "org.springframework.retry:spring-retry", version = "2.0.12" }
-postgres = { module = "org.postgresql:postgresql", version = "42.7.8" }
+postgres = { module = "org.postgresql:postgresql", version = "42.7.12" }
 oracle = { module = "com.oracle.database.jdbc:ojdbc11", version = "23.26.0.0.0" }
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-postgres = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
@@ -64,3 +66,5 @@ kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotl
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 versions = { id = "com.github.ben-manes.versions", version = "0.53.0" }
 openapi-gen = { id = "org.openapi.generator", version = "7.23.0" }
+digibok-container-image = { id = "digibok.plugin.container-image", version.ref = "digibok-container-image"}
+digibok-github-publish = { id = "digibok.convention.github-publish", version.ref = "digibok-github-publish"}
