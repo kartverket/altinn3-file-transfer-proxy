@@ -1,5 +1,4 @@
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
-import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -7,6 +6,8 @@ plugins {
     alias(libs.plugins.kotlin.spring)
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.detekt.kotlin.analyzer)
+    alias(libs.plugins.digibok.container.image)
+    alias(libs.plugins.digibok.github.publish)
 }
 
 dependencies {
@@ -76,29 +77,12 @@ tasks.register("openApiAltinnBrokerWebhooksGen", GenerateTask::class) {
     generateModelDocumentation.set(false)
 }
 
-tasks.named<BootBuildImage>("bootBuildImage") {
-    imageName = "kartverket.no/${project.name}:${project.version}"
-    createdDate = "now"
-    environment.putAll(
-        mapOf(
-            "BP_NATIVE_IMAGE" to "false",
-            "BP_JVM_VERSION" to "25",
-            "BPE_DELIM_JAVA_TOOL_OPTIONS" to " ",
-            "BPE_APPEND_JAVA_TOOL_OPTIONS" to "-XX:MaxDirectMemorySize=512M",
-        )
-    )
-    if (!System.getenv("IMAGE_URL").isNullOrEmpty()) {
-        imageName = System.getenv("IMAGE_URL")
-        tags = setOf(imageName.get().replace(Regex(":.*"), ":latest"))
-        publish = true
-        docker {
-            publishRegistry {
-                url = System.getenv("REGISTRY_URL")
-                username = System.getenv("DOCKER_USERNAME")
-                password = System.getenv("DOCKER_PASSWORD")
-            }
-        }
-    }
+githubPublish {
+    imageName.set(project.name)
+}
+
+containerImage {
+    additionalTags.set(listOf("latest"))
 }
 
 detekt {
