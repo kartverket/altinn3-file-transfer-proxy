@@ -1,7 +1,14 @@
 pluginManagement {
     repositories {
-        mavenCentral()
+        maven {
+            url = uri("https://maven.pkg.github.com/kartverket/digibok-tools")
+            credentials {
+                username = "altinn3-proxy"
+                password = providers.gradleProperty("TOKEN").orElse(providers.environmentVariable("TOKEN")).get()
+            }
+        }
         gradlePluginPortal()
+        mavenCentral()
     }
 }
 
